@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2015
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackupToGit", "BackupToGit\BackupToGit.csproj", "{D3D8DAB7-C9AD-4942-854D-9B99428E034A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D3D8DAB7-C9AD-4942-854D-9B99428E034A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3D8DAB7-C9AD-4942-854D-9B99428E034A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3D8DAB7-C9AD-4942-854D-9B99428E034A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3D8DAB7-C9AD-4942-854D-9B99428E034A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {75439A53-9914-447D-B472-916E316CE138}
+	EndGlobalSection
+EndGlobal
