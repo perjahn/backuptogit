@@ -65,16 +65,9 @@ namespace BackupGrafana
 
                         string name = dashboard.meta.slug;
 
-                        dashboard.meta.Property("expires").Remove();
-                        dashboard.meta.Property("created").Remove();
-                        dashboard.meta.Property("updated").Remove();
-                        dashboard.meta.Property("updatedBy").Remove();
-                        dashboard.meta.Property("createdBy").Remove();
-                        dashboard.meta.Property("version").Remove();
-
                         string filename = Path.Combine(folder, PrettyName($"{org.name}_{name}") + ".json");
 
-                        string pretty = dashboard.ToString(Newtonsoft.Json.Formatting.Indented);
+                        string pretty = dashboard.dashboard.ToString(Newtonsoft.Json.Formatting.Indented);
 
                         Log($"Saving: '{filename}'");
                         File.WriteAllText(filename, pretty);
