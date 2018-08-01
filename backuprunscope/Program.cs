@@ -1,12 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace backuprunscope
@@ -15,206 +10,82 @@ namespace backuprunscope
     {
         static async Task<int> Main(string[] args)
         {
+            BackupToGit.Git git = new BackupToGit.Git();
+            BackupToGit.SecureLogger.Logfile = Path.Combine(Directory.GetCurrentDirectory(), "backuprunscope.log");
+
             if (args.Length != 1)
             {
-                Log("backuprunscope <access_token>");
+                Log("Usage: backuprunscope <access_token>");
                 return 1;
             }
 
             string access_token = args[0];
+            string folder = "buckets";
+            await Runscope.BackupAsync(access_token, folder);
 
-            await BackupAsync(access_token);
+            string gitsourcefolder = folder;
+            string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
+            string gitserver = Environment.GetEnvironmentVariable("gitserver");
+            string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
+            string gitrepofolder = Environment.GetEnvironmentVariable("gitrepofolder");
+            string gitusername = Environment.GetEnvironmentVariable("gitusername");
+            string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
+            string gitemail = Environment.GetEnvironmentVariable("gitemail");
+            bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
+
+            if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitrepofolder) ||
+                string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
+            {
+                StringBuilder missing = new StringBuilder();
+                if (string.IsNullOrEmpty(gitbinary))
+                    missing.AppendLine("Missing gitbinary.");
+                if (string.IsNullOrEmpty(gitserver))
+                    missing.AppendLine("Missing gitserver.");
+                if (string.IsNullOrEmpty(gitrepopath))
+                    missing.AppendLine("Missing gitrepopath.");
+                if (string.IsNullOrEmpty(gitrepofolder))
+                    missing.AppendLine("Missing gitrepofolder.");
+                if (string.IsNullOrEmpty(gitusername))
+                    missing.AppendLine("Missing gitusername.");
+                if (string.IsNullOrEmpty(gitpassword))
+                    missing.AppendLine("Missing gitpassword.");
+                if (string.IsNullOrEmpty(gitemail))
+                    missing.AppendLine("Missing gitemail.");
+
+                Log("Missing git environment variables, will not push Runscope bucket files to Git." + Environment.NewLine + missing.ToString());
+            }
+            else
+            {
+                if (!git.Push(gitbinary, gitsourcefolder, gitserver, gitrepopath, gitrepofolder, gitusername, gitpassword, gitemail, gitsimulatepush))
+                {
+                    return 1;
+                }
+            }
 
             return 0;
         }
 
-        static async Task BackupAsync(string access_token)
+        static bool ParseBooleanEnvironmentVariable(string variableName, bool defaultValue)
         {
-            string foldername = "buckets";
-            DeleteFolder(foldername);
-            Directory.CreateDirectory(foldername);
-
-
-            string url = "https://api.runscope.com/buckets";
-
-            using (HttpClient client = new HttpClient())
+            string stringValue = Environment.GetEnvironmentVariable(variableName);
+            if (stringValue == null)
             {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", access_token);
-                //client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                var response = await client.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-                string content = await response.Content.ReadAsStringAsync();
-
-                JArray buckets = ((dynamic)JObject.Parse(content)).data;
-
-                Log($"Found {buckets.Count} buckets.");
-                int testcount = 0;
-
-                foreach (JToken bucket in buckets.OrderBy(b => ((dynamic)b).name.Value))
-                {
-                    string bucketname = ((dynamic)bucket).name.Value;
-                    string tests_url = ((dynamic)bucket).tests_url.Value;
-
-                    response = await client.GetAsync(tests_url);
-                    response.EnsureSuccessStatusCode();
-                    content = await response.Content.ReadAsStringAsync();
-
-                    JArray tests = ((dynamic)JObject.Parse(content)).data;
-
-                    if (tests.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    testcount += tests.Count;
-
-                    JArray savetests = new JArray();
-
-                    foreach (JToken test in tests.OrderBy(b => ((dynamic)b).name.Value))
-                    {
-                        string testname = ((dynamic)test).name.Value;
-                        string testid = ((dynamic)test).id.Value;
-
-                        string fullname = GetCleanName(bucketname) + "." + GetCleanName(testname);
-
-                        string testurl = $"{tests_url}/{testid}";
-
-                        Log($"Exporting: '{fullname}'");
-                        response = await client.GetAsync(testurl);
-                        response.EnsureSuccessStatusCode();
-                        content = await response.Content.ReadAsStringAsync();
-
-                        dynamic testdetails = ((dynamic)JObject.Parse(content)).data;
-
-                        RemoveElements(testdetails, "exported_at", 7);
-                        RemoveElements(testdetails, "id", 7);
-                        RemoveElements(testdetails, "last_run", 7);
-
-                        savetests.Add(GetSortedJson(testdetails, 5));
-                    }
-
-                    string filename = Path.Combine(foldername, $"{bucketname}.json");
-                    Log($"Saving: '{filename}'");
-                    File.WriteAllText(filename, savetests.ToString());
-                }
-
-                Log($"Got {testcount} tests.");
-            }
-        }
-
-        static void DeleteFolder(string foldername)
-        {
-            if (Directory.Exists(foldername))
-            {
-                for (int tries = 0; tries < 5; tries++)
-                {
-                    try
-                    {
-                        Directory.Delete(foldername, true);
-                    }
-                    catch { }
-
-                    if (!Directory.Exists(foldername))
-                    {
-                        return;
-                    }
-
-                    Thread.Sleep(2000);
-
-                    if (!Directory.Exists(foldername))
-                    {
-                        return;
-                    }
-                }
-            }
-
-            if (Directory.Exists(foldername))
-            {
-                Directory.Delete(foldername, true);
-            }
-        }
-
-        static void RemoveElements(JObject jobject, string name, int depth)
-        {
-            JToken[] ids = jobject
-                .DescendantsAndSelf()
-                .Where(o => o.Ancestors().Count() < depth)
-                .Select(o => o as JProperty)
-                .Where(p => p != null && (p.Name == name))
-                .ToArray();
-
-            foreach (var id in ids)
-            {
-                id.Remove();
-            }
-        }
-
-        static JToken GetSortedJson(JToken jtoken, int depth)
-        {
-            if (depth > 0 && jtoken.Type == JTokenType.Object)
-            {
-                JObject old = jtoken as JObject;
-                JObject jobject = new JObject();
-
-                foreach (JToken child in old.Children().OrderByDescending(c => c.Path))
-                {
-                    jobject.AddFirst(GetSortedJson(child, depth - 1));
-                }
-
-                return jobject;
-            }
-            else if (depth > 0 && jtoken.Type == JTokenType.Property)
-            {
-                JProperty old = jtoken as JProperty;
-                JProperty jproperty = new JProperty(old.Name, old.Value);
-
-                foreach (JToken child in old.Children().OrderByDescending(c => c.Path))
-                {
-                    JToken newchild = GetSortedJson(child, depth - 1);
-                    jproperty.Value = newchild;
-                }
-
-                return jproperty;
-            }
-            else if (depth > 0 && jtoken.Type == JTokenType.Array)
-            {
-                JArray old = jtoken as JArray;
-                JArray jarray = new JArray();
-
-                var sortedChildren = old.Select(c => GetSortedJson(c, depth - 1));
-
-                foreach (JToken child in sortedChildren)
-                {
-                    jarray.Add(child);
-                }
-
-                return jarray;
+                return defaultValue;
             }
             else
             {
-                return jtoken;
-            }
-        }
-
-        static string GetCleanName(string s)
-        {
-            StringBuilder sb = new StringBuilder();
-
-            foreach (char c in s.ToArray())
-            {
-                if (char.IsLetterOrDigit(c) || c == ' ' || c == '-')
+                bool boolValue;
+                if (!bool.TryParse(stringValue, out boolValue))
                 {
-                    sb.Append(c);
+                    return defaultValue;
                 }
+                return boolValue;
             }
-
-            return sb.ToString();
         }
 
         static void Log(string message)
         {
-            Console.WriteLine(message);
+            BackupToGit.SecureLogger.WriteLine(message);
         }
     }
 }
