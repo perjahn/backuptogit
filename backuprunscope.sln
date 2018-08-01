@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2042
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backuprunscope", "backuprunscope\backuprunscope.csproj", "{384F596F-EF67-4D3A-9261-2587AC3A9D94}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{384F596F-EF67-4D3A-9261-2587AC3A9D94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{384F596F-EF67-4D3A-9261-2587AC3A9D94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{384F596F-EF67-4D3A-9261-2587AC3A9D94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{384F596F-EF67-4D3A-9261-2587AC3A9D94}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {54B98119-F4EE-4498-8584-6E64D1A4215F}
+	EndGlobalSection
+EndGlobal
