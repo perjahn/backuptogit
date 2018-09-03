@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -34,7 +35,7 @@ namespace backuprunscope
                 Log($"Found {buckets.Count} buckets.");
                 int testcount = 0;
 
-                foreach (JToken bucket in buckets.OrderBy(b => ((dynamic)b).name.Value))
+                foreach (JToken bucket in buckets.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.InvariantCultureIgnoreCase))
                 {
                     string bucketname = ((dynamic)bucket).name.Value;
                     string tests_url = ((dynamic)bucket).tests_url.Value;
@@ -54,7 +55,7 @@ namespace backuprunscope
 
                     JArray savetests = new JArray();
 
-                    foreach (JToken test in tests.OrderBy(b => ((dynamic)b).name.Value))
+                    foreach (JToken test in tests.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.InvariantCultureIgnoreCase))
                     {
                         string testname = ((dynamic)test).name.Value;
                         string testid = ((dynamic)test).id.Value;
@@ -108,7 +109,7 @@ namespace backuprunscope
                 JObject old = jtoken as JObject;
                 JObject jobject = new JObject();
 
-                foreach (JToken child in old.Children().OrderByDescending(c => c.Path))
+                foreach (JToken child in old.Children().OrderByDescending(c => c.Path, StringComparer.InvariantCultureIgnoreCase))
                 {
                     jobject.AddFirst(GetSortedJson(child, depth - 1));
                 }
@@ -120,7 +121,7 @@ namespace backuprunscope
                 JProperty old = jtoken as JProperty;
                 JProperty jproperty = new JProperty(old.Name, old.Value);
 
-                foreach (JToken child in old.Children().OrderByDescending(c => c.Path))
+                foreach (JToken child in old.Children().OrderByDescending(c => c.Path, StringComparer.InvariantCultureIgnoreCase))
                 {
                     JToken newchild = GetSortedJson(child, depth - 1);
                     jproperty.Value = newchild;
