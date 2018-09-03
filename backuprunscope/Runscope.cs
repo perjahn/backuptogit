@@ -51,8 +51,6 @@ namespace backuprunscope
                         continue;
                     }
 
-                    testcount += tests.Count;
-
                     JArray savetests = new JArray();
 
                     foreach (JToken test in tests.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.InvariantCultureIgnoreCase))
@@ -69,6 +67,11 @@ namespace backuprunscope
                         response.EnsureSuccessStatusCode();
                         content = await response.Content.ReadAsStringAsync();
 
+                        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RunscopeRestDebug")))
+                        {
+                            File.WriteAllText($"testresult_{testcount}.json", JToken.Parse(content).ToString());
+                        }
+
                         dynamic testdetails = ((dynamic)JObject.Parse(content)).data;
 
                         RemoveElements(testdetails, "exported_at", 7);
@@ -76,6 +79,8 @@ namespace backuprunscope
                         RemoveElements(testdetails, "last_run", 7);
 
                         savetests.Add(GetSortedJson(testdetails, 5));
+
+                        testcount++;
                     }
 
                     string filename = Path.Combine(folder, $"{bucketname}.json");
