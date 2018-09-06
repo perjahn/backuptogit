@@ -14,8 +14,12 @@ public class Program
     public static int Main(string[] args)
     {
         string[] parsedArgs = args;
+
         bool noninteractive = parsedArgs.Contains("--noninteractive") ? true : false;
-        parsedArgs = args.Where(a => a != "--noninteractive").ToArray();
+        parsedArgs = parsedArgs.Where(a => a != "--noninteractive").ToArray();
+
+        bool verboseLogging = parsedArgs.Contains("--verbose") ? true : false;
+        parsedArgs = parsedArgs.Where(a => a != "--verbose").ToArray();
 
         int result = 0;
         try
@@ -23,7 +27,7 @@ public class Program
             if (parsedArgs.Length != 2)
             {
                 Console.WriteLine(
-@"BackupTCProjects 2.0
+@"BackupTeamcity 2.0
 
 This is a backup program that retrieves all important configuration files on
 a Teamcity build server. These files can be backuped and later imported on
@@ -33,9 +37,9 @@ Reason for not using Teamcity's own backup feature is that it will make too
 many commits, one for each change. This tool can instead be scheduled once
 a day.
 
-Usage: BackupTCProjects [--noninteractive] <source> <target>
+Usage: BackupTeamcity [--noninteractive] [--verbose] <source> <target>
 
-Example: D:\TeamCity\.BuildServer\config\projects _Artifacts\projects
+Example: BackupTeamcity D:\TeamCity\.BuildServer\config\projects _Artifacts\projects
 
 Optional environment variables (default):
 includebuildnumberfiles  - true/(false)
@@ -44,16 +48,18 @@ Optional environment variables, used for pushing to git (with examples):
 gitbinary                - C:\Program Files\Git\git.exe
 gitserver                - gitserver.organization.com
 gitrepopath              - organization/tcconfig.git
-gitrepofolder            - tcconfig\projects
+gitsubrepopath           - projects, subfolder within the repo.
 gitusername              - luser
 gitpassword              - abc123
 gitemail                 - noreply@example.com
-gitsimulatepush          - true/(false)");
+gitsimulatepush          - true/(false)
+
+Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepopath");
 
                 return 1;
             }
 
-            BackupTCProjects(parsedArgs[0], parsedArgs[1]);
+            BackupTeamcity(parsedArgs[0], parsedArgs[1], verboseLogging);
         }
         catch (ApplicationException ex)
         {
@@ -75,7 +81,7 @@ gitsimulatepush          - true/(false)");
         return result;
     }
 
-    static void BackupTCProjects(string sourcefolder, string targetfolder)
+    static void BackupTeamcity(string sourcefolder, string targetfolder, bool verboseLogging)
     {
         string curdir = Environment.CurrentDirectory;
 
@@ -98,18 +104,18 @@ gitsimulatepush          - true/(false)");
 
 
         string shortSourcefolder = sourcefolder;
-        if (sourcefolder.StartsWith(curdir))
+        if (sourcefolder.StartsWith(curdir + Path.DirectorySeparatorChar))
         {
-            shortSourcefolder = sourcefolder.Substring(curdir.Length);
+            shortSourcefolder = sourcefolder.Substring(curdir.Length + 1);
         }
 
 
         bool includebuildnumberfiles = ParseBooleanEnvironmentVariable("includebuildnumberfiles", false);
 
         string shortTargetfolder = targetfolder;
-        if (targetfolder.StartsWith(curdir))
+        if (targetfolder.StartsWith(curdir + Path.DirectorySeparatorChar))
         {
-            shortTargetfolder = targetfolder.Substring(curdir.Length);
+            shortTargetfolder = targetfolder.Substring(curdir.Length + 1);
         }
 
         CopyConfigFiles(shortSourcefolder, shortTargetfolder, includebuildnumberfiles);
@@ -117,14 +123,16 @@ gitsimulatepush          - true/(false)");
         string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
         string gitserver = Environment.GetEnvironmentVariable("gitserver");
         string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
-        string gitrepofolder = Environment.GetEnvironmentVariable("gitrepofolder");
+        string gitsubrepopath = Environment.GetEnvironmentVariable("gitsubrepopath");
         string gitusername = Environment.GetEnvironmentVariable("gitusername");
         string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
         string gitemail = Environment.GetEnvironmentVariable("gitemail");
+        string gitzipbinary = Environment.GetEnvironmentVariable("gitzipbinary");
+        string gitzippassword = Environment.GetEnvironmentVariable("gitzippassword");
 
         bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
 
-        if (string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitrepofolder) ||
+        if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitsubrepopath) ||
             string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
         {
             StringBuilder missing = new StringBuilder();
@@ -134,8 +142,8 @@ gitsimulatepush          - true/(false)");
                 missing.AppendLine("Missing gitserver.");
             if (string.IsNullOrEmpty(gitrepopath))
                 missing.AppendLine("Missing gitrepopath.");
-            if (string.IsNullOrEmpty(gitrepofolder))
-                missing.AppendLine("Missing gitrepofolder.");
+            if (string.IsNullOrEmpty(gitsubrepopath))
+                missing.AppendLine("Missing gitsubrepopath.");
             if (string.IsNullOrEmpty(gitusername))
                 missing.AppendLine("Missing gitusername.");
             if (string.IsNullOrEmpty(gitpassword))
@@ -147,8 +155,22 @@ gitsimulatepush          - true/(false)");
         }
         else
         {
-            var git = new BackupToGit.Git();
-            git.Push(gitbinary, shortTargetfolder, gitserver, gitrepopath, gitrepofolder, gitusername, gitpassword, gitemail, gitsimulatepush);
+            var git = new BackupToGit.Git()
+            {
+                GitBinary = gitbinary,
+                SourceFolder = shortTargetfolder,
+                Server = gitserver,
+                RepoPath = gitrepopath,
+                SubRepoPath = gitsubrepopath,
+                Username = gitusername,
+                Password = gitpassword,
+                Email = gitemail,
+                SimulatePush = gitsimulatepush,
+                VerboseLogging = verboseLogging,
+                ZipBinary = gitzipbinary,
+                ZipPassword = gitzippassword
+            };
+            git.Push();
         }
     }
 

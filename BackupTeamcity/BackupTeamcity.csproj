@@ -8,7 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BackupToGit" Version="1.0.0" />
+    <Reference Include="BackupToGit">
+      <HintPath>..\lib\BackupToGit.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
