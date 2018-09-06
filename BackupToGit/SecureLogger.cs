@@ -19,7 +19,7 @@ namespace BackupToGit
             {
                 foreach (string replacestring in SensitiveStrings)
                 {
-                    clean = clean.Replace(replacestring, string.Join(string.Empty, Enumerable.Repeat("*", replacestring.Length)));
+                    clean = clean.Replace(replacestring, new string('*', replacestring.Length));
                 }
             }
 

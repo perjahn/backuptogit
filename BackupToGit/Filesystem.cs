@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace BackupToGit
 {
@@ -52,21 +52,30 @@ namespace BackupToGit
 
                 for (int tries = 1; tries <= 10; tries++)
                 {
-                    Log($"Try {tries} to delete folder: '{folder}'");
+                    Log($"Deleting folder (try {tries}): '{folder}'");
                     try
                     {
                         Directory.Delete(folder, true);
-                        return;
+
+                        if (!Directory.Exists(folder))
+                        {
+                            return;
+                        }
+                        Thread.Sleep(1000);
+                        if (!Directory.Exists(folder))
+                        {
+                            return;
+                        }
                     }
                     catch (Exception ex) when (tries < 10 && (ex is UnauthorizedAccessException || ex is IOException))
                     {
-                        Task.Delay(1000).Wait();
+                        Thread.Sleep(1000);
                     }
                 }
             }
         }
 
-        public static bool CompareFolders(string folder1, string folder2)
+        public static bool CompareFolders(string folder1, string folder2, bool verboseLogging)
         {
             if (!Directory.Exists(folder1) || !Directory.Exists(folder2))
             {
@@ -87,6 +96,8 @@ namespace BackupToGit
             Array.Sort(files1);
             Array.Sort(files2);
 
+            bool diff = false;
+
             for (int i = 0; i < files1.Length; i++)
             {
                 string file1 = files1[i];
@@ -99,7 +110,15 @@ namespace BackupToGit
                 if (f1 != f2)
                 {
                     Log($"Filename diff: '{f1}' '{f2}'");
-                    return false;
+                    diff = true;
+                    if (verboseLogging)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
 
                 string hash1 = GetFileHash(file1);
@@ -107,11 +126,19 @@ namespace BackupToGit
                 if (hash1 != hash2)
                 {
                     Log($"Hash diff: '{file1}' '{file2}' {hash1} {hash2}");
-                    return false;
+                    diff = true;
+                    if (verboseLogging)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
             }
 
-            return true;
+            return !diff;
         }
 
         public static string GetFileHash(string filename)
