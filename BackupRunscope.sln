@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2042
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "backuprunscope", "backuprunscope\backuprunscope.csproj", "{384F596F-EF67-4D3A-9261-2587AC3A9D94}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackupRunscope", "BackupRunscope\BackupRunscope.csproj", "{384F596F-EF67-4D3A-9261-2587AC3A9D94}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
