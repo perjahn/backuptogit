@@ -33,13 +33,13 @@ namespace BackupGrafana
             string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
             string gitserver = Environment.GetEnvironmentVariable("gitserver");
             string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
-            string gitrepofolder = Environment.GetEnvironmentVariable("gitrepofolder");
+            string gitsubrepopath = Environment.GetEnvironmentVariable("gitsubrepopath");
             string gitusername = Environment.GetEnvironmentVariable("gitusername");
             string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
             string gitemail = Environment.GetEnvironmentVariable("gitemail");
             bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
 
-            if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitrepofolder) ||
+            if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitsubrepopath) ||
                 string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
             {
                 StringBuilder missing = new StringBuilder();
@@ -49,8 +49,8 @@ namespace BackupGrafana
                     missing.AppendLine("Missing gitserver.");
                 if (string.IsNullOrEmpty(gitrepopath))
                     missing.AppendLine("Missing gitrepopath.");
-                if (string.IsNullOrEmpty(gitrepofolder))
-                    missing.AppendLine("Missing gitrepofolder.");
+                if (string.IsNullOrEmpty(gitsubrepopath))
+                    missing.AppendLine("Missing gitsubrepopath.");
                 if (string.IsNullOrEmpty(gitusername))
                     missing.AppendLine("Missing gitusername.");
                 if (string.IsNullOrEmpty(gitpassword))
@@ -62,7 +62,17 @@ namespace BackupGrafana
             }
             else
             {
-                if (!git.Push(gitbinary, gitsourcefolder, gitserver, gitrepopath, gitrepofolder, gitusername, gitpassword, gitemail, gitsimulatepush))
+                git.GitBinary = gitbinary;
+                git.SourceFolder = gitsourcefolder;
+                git.Server = gitserver;
+                git.RepoPath = gitrepopath;
+                git.SubRepoPath = gitsubrepopath;
+                git.Username = gitusername;
+                git.Password = gitpassword;
+                git.Email = gitemail;
+                git.SimulatePush = gitsimulatepush;
+
+                if (!git.Push())
                 {
                     return 1;
                 }
