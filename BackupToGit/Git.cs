@@ -82,10 +82,10 @@ namespace BackupToGit
             {
                 File.Delete(subrepopath);
 
-                string encrypt = string.IsNullOrEmpty(ZipPassword) ? string.Empty : $" \"-p{ZipPassword}\"";
+                string encrypt = string.IsNullOrEmpty(ZipPassword) ? string.Empty : $" -mhe \"-p{ZipPassword}\"";
 
                 Log($"Zipping files into git folder: '{SourceFolder}' -> '{subrepopath}'");
-                RunCommand(ZipBinary, $"a \"{subrepopath}\" \"{SourceFolder}\"{encrypt}");
+                RunCommand(ZipBinary, $"a -mx9 \"{subrepopath}\" \"{SourceFolder}\"{encrypt}");
             }
             else
             {
