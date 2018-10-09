@@ -78,7 +78,7 @@ namespace BackupRunscope
                         RemoveElements(testdetails, "id", 7);
                         RemoveElements(testdetails, "last_run", 7);
 
-                        savetests.Add(GetSortedJson(testdetails, 5));
+                        savetests.Add(GetSortedJson(testdetails, 999));
 
                         testcount++;
                     }
@@ -150,6 +150,7 @@ namespace BackupRunscope
             }
             else
             {
+                // Boolean, Integer, String, Null
                 return jtoken;
             }
         }
