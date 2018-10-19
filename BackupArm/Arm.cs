@@ -102,6 +102,15 @@ namespace BackupArm
             }
 
             jobject = ScrubSecrets(result, filename);
+            jobject = DeleteSpuriousErrors(jobject,
+                new[] { "Microsoft.Network/networkSecurityGroups",
+                        "Microsoft.Sql/servers/databases/syncGroups",
+                        "Microsoft.Sql/servers/databases/vulnerabilityAssessments",
+                        "Microsoft.Sql/servers/firewallRules",
+                        "Microsoft.Storage/storageAccounts/blobServices",
+                        "Microsoft.Web/sites/deployments",
+                        "Microsoft.Web/sites/slots/deployments" },
+                filename);
             jobject = GetSortedJson(jobject);
 
             Log($"Saving: '{filename}'");
@@ -121,6 +130,33 @@ namespace BackupArm
             {
                 Log($"Removing {property.Name} value from: '{name}'");
                 property.Value = string.Empty;
+            }
+
+            return jobject;
+        }
+
+        static JObject DeleteSpuriousErrors(JObject jobject, string[] errorTypes, string name)
+        {
+            if (jobject["error"] == null || jobject["error"]["details"] == null)
+            {
+                return jobject;
+            }
+
+            JArray details = (JArray)jobject["error"]["details"];
+
+            for (int i = 0; i < details.Count();)
+            {
+                string target = (string)details[i]["target"];
+
+                if (errorTypes.Contains(target))
+                {
+                    Log($"Removing {target} value from: '{name}'");
+                    details.RemoveAt(i);
+                }
+                else
+                {
+                    i++;
+                }
             }
 
             return jobject;
