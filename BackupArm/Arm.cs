@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BackupArm
@@ -88,18 +89,25 @@ namespace BackupArm
 
         static async Task ExportResourceGroupAsync(HttpClient client, string subscriptionName, string resourceGroupId, string resourceGroupName, string folder)
         {
+            // The export api is highly volatile, cannot usually export any resource consistently.
+            // Let's try 12 times, and keep the one with fewest export errors.
+
             string url = $"{resourceGroupId}/exportTemplate?api-version=2015-01-01";
             dynamic jobject = JObject.Parse("{\"options\": \"IncludeParameterDefaultValue\", \"resources\": [\"*\"]}");
 
-            dynamic result = await PostHttpStringAsync(client, url, jobject);
-            string filename = Path.Combine(folder, subscriptionName, $"{resourceGroupName}.json");
+            var results = new JObject[12];
 
-            string folderPath = Path.GetDirectoryName(filename);
-            if (!Directory.Exists(folderPath))
+            for (int tries = 0; tries < 12; tries++)
             {
-                Log($"Creating folder: '{folderPath}'");
-                Directory.CreateDirectory(folderPath);
+                results[tries] = await PostHttpStringAsync(client, url, jobject);
+                await Task.Delay(5000);
             }
+
+            int minerrors = results.Min(o => GetErrorCount(o));
+            int maxerrors = results.Max(o => GetErrorCount(o));
+            JObject result = results.First(o => GetErrorCount(o) == minerrors);
+
+            string filename = Path.Combine(folder, subscriptionName, $"{resourceGroupName}.json");
 
             jobject = ScrubSecrets(result, filename);
             jobject = DeleteSpuriousErrors(jobject,
@@ -113,8 +121,27 @@ namespace BackupArm
                 filename);
             jobject = GetSortedJson(jobject);
 
-            Log($"Saving: '{filename}'");
+            string folderPath = Path.GetDirectoryName(filename);
+            if (!Directory.Exists(folderPath))
+            {
+                Log($"Creating folder: '{folderPath}'");
+                Directory.CreateDirectory(folderPath);
+            }
+
+            Log($"Saving: '{filename}'" + (minerrors != maxerrors ? $" (Got {minerrors}-{maxerrors} errors)" : string.Empty));
             File.WriteAllText(filename, jobject.ToString());
+        }
+
+        static int GetErrorCount(JObject jobject)
+        {
+            if (jobject["error"] == null || jobject["error"]["details"] == null)
+            {
+                return 0;
+            }
+
+            JArray details = (JArray)jobject["error"]["details"];
+
+            return details.Count;
         }
 
         static JObject ScrubSecrets(JObject jobject, string name)
