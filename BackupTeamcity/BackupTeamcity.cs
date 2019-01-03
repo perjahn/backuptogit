@@ -13,21 +13,9 @@ public class Program
 {
     public static int Main(string[] args)
     {
-        string[] parsedArgs = args;
-
-        bool noninteractive = parsedArgs.Contains("--noninteractive") ? true : false;
-        parsedArgs = parsedArgs.Where(a => a != "--noninteractive").ToArray();
-
-        bool verboseLogging = parsedArgs.Contains("--verbose") ? true : false;
-        parsedArgs = parsedArgs.Where(a => a != "--verbose").ToArray();
-
-        int result = 0;
-        try
-        {
-            if (parsedArgs.Length != 2)
-            {
-                Console.WriteLine(
-@"BackupTeamcity 2.0
+        string[] parsedArgs = args.TakeWhile(a => a != "--").ToArray();
+        string usage =
+@"BackupTeamcity 2.0.1
 
 This is a backup program that retrieves all important configuration files on
 a Teamcity build server. These files can be backuped and later imported on
@@ -54,8 +42,20 @@ gitpassword              - abc123
 gitemail                 - noreply@example.com
 gitsimulatepush          - true/(false)
 
-Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepopath");
+Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepopath";
 
+        bool noninteractive = parsedArgs.Contains("--noninteractive") ? true : false;
+        parsedArgs = parsedArgs.Where(a => a != "--noninteractive").ToArray();
+
+        bool verboseLogging = parsedArgs.Contains("--verbose") ? true : false;
+        parsedArgs = parsedArgs.Where(a => a != "--verbose").ToArray();
+
+        int result = 0;
+        try
+        {
+            if (parsedArgs.Length != 2)
+            {
+                Console.WriteLine(usage);
                 return 1;
             }
 
@@ -129,6 +129,15 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
         string gitemail = Environment.GetEnvironmentVariable("gitemail");
         string gitzipbinary = Environment.GetEnvironmentVariable("gitzipbinary");
         string gitzippassword = Environment.GetEnvironmentVariable("gitzippassword");
+
+        if (string.IsNullOrEmpty(gitbinary) && File.Exists("/usr/bin/git"))
+        {
+            gitbinary = "/usr/bin/git";
+        }
+        if (string.IsNullOrEmpty(gitbinary) && File.Exists(@"C:\Program Files\Git\bin\git.exe"))
+        {
+            gitbinary = @"C:\Program Files\Git\bin\git.exe";
+        }
 
         bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
 
