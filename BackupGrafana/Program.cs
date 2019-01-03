@@ -12,15 +12,18 @@ namespace BackupGrafana
             BackupToGit.Git git = new BackupToGit.Git();
             BackupToGit.SecureLogger.Logfile = Path.Combine(Directory.GetCurrentDirectory(), "BackupGrafana.log");
 
-            if (args.Length != 3)
+            string[] parsedArgs = args.TakeWhile(a => a != "--").ToArray();
+            string usage = "Usage: BackupGrafana <serverurl> <username> <password>";
+
+            if (parsedArgs.Length != 3)
             {
-                Log("Usage: BackupGrafana <serverurl> <username> <password>");
+                Log(usage);
                 return 1;
             }
 
-            string url = args[0];
-            string username = args[1];
-            string password = args[2];
+            string url = parsedArgs[0];
+            string username = parsedArgs[1];
+            string password = parsedArgs[2];
             string folder = "dashboards";
 
             Grafana grafana = new Grafana();
@@ -90,8 +93,7 @@ namespace BackupGrafana
             }
             else
             {
-                bool boolValue;
-                if (!bool.TryParse(stringValue, out boolValue))
+                if (!bool.TryParse(stringValue, out bool boolValue))
                 {
                     return defaultValue;
                 }
