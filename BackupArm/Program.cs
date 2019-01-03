@@ -14,13 +14,16 @@ namespace BackupArm
             BackupToGit.Git git = new BackupToGit.Git();
             BackupToGit.SecureLogger.Logfile = Path.Combine(Directory.GetCurrentDirectory(), "backuparm.log");
 
-            if (args.Length != 1)
+            string[] parsedArgs = args.TakeWhile(a => a != "--").ToArray();
+            string usage = "Usage: backuparm <folder>";
+
+            if (parsedArgs.Length != 1)
             {
-                Log("Usage: backuparm <folder>");
+                Log(usage);
                 return 1;
             }
 
-            string folder = args[0];
+            string folder = parsedArgs[0];
 
             var servicePrincipals = GetServicePrincipals();
             if (servicePrincipals.Length == 0)
@@ -55,6 +58,15 @@ namespace BackupArm
             bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
             string gitzipbinary = Environment.GetEnvironmentVariable("gitzipbinary");
             string gitzippassword = Environment.GetEnvironmentVariable("gitzippassword");
+
+            if (string.IsNullOrEmpty(gitbinary) && File.Exists("/usr/bin/git"))
+            {
+                gitbinary = "/usr/bin/git";
+            }
+            if (string.IsNullOrEmpty(gitbinary) && File.Exists(@"C:\Program Files\Git\bin\git.exe"))
+            {
+                gitbinary = @"C:\Program Files\Git\bin\git.exe";
+            }
 
             if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitsubrepopath) ||
                 string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
