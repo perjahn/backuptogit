@@ -13,13 +13,16 @@ namespace BackupRunscope
             BackupToGit.Git git = new BackupToGit.Git();
             BackupToGit.SecureLogger.Logfile = Path.Combine(Directory.GetCurrentDirectory(), "BackupRunscope.log");
 
-            if (args.Length != 1)
+            string[] parsedArgs = args.TakeWhile(a => a != "--").ToArray();
+            string usage = "Usage: BackupRunscope <access_token>";
+
+            if (parsedArgs.Length != 1)
             {
-                Log("Usage: BackupRunscope <access_token>");
+                Log(usage);
                 return 1;
             }
 
-            string access_token = args[0];
+            string access_token = parsedArgs[0];
             string folder = "buckets";
             await Runscope.BackupAsync(access_token, folder);
 
@@ -32,6 +35,15 @@ namespace BackupRunscope
             string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
             string gitemail = Environment.GetEnvironmentVariable("gitemail");
             bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
+
+            if (string.IsNullOrEmpty(gitbinary) && File.Exists("/usr/bin/git"))
+            {
+                gitbinary = "/usr/bin/git";
+            }
+            if (string.IsNullOrEmpty(gitbinary) && File.Exists(@"C:\Program Files\Git\bin\git.exe"))
+            {
+                gitbinary = @"C:\Program Files\Git\bin\git.exe";
+            }
 
             if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitsubrepopath) ||
                 string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
