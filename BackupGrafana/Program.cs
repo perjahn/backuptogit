@@ -42,6 +42,15 @@ namespace BackupGrafana
             string gitemail = Environment.GetEnvironmentVariable("gitemail");
             bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
 
+            if (string.IsNullOrEmpty(gitbinary) && File.Exists("/usr/bin/git"))
+            {
+                gitbinary = "/usr/bin/git";
+            }
+            if (string.IsNullOrEmpty(gitbinary) && File.Exists(@"C:\Program Files\Git\bin\git.exe"))
+            {
+                gitbinary = @"C:\Program Files\Git\bin\git.exe";
+            }
+
             if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitsubrepopath) ||
                 string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
             {
