@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -33,9 +34,10 @@ namespace BackupRunscope
                 JArray buckets = ((dynamic)JObject.Parse(content)).data;
 
                 Log($"Found {buckets.Count} buckets.");
+                int bucketcount = 0;
                 int testcount = 0;
 
-                foreach (JToken bucket in buckets.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.InvariantCultureIgnoreCase))
+                foreach (JToken bucket in buckets.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.OrdinalIgnoreCase))
                 {
                     string bucketname = ((dynamic)bucket).name.Value;
                     string tests_url = ((dynamic)bucket).tests_url.Value;
@@ -44,6 +46,11 @@ namespace BackupRunscope
                     response.EnsureSuccessStatusCode();
                     content = await response.Content.ReadAsStringAsync();
 
+                    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RunscopeRestDebug")))
+                    {
+                        File.WriteAllText($"bucketresult_{bucketcount}.json", JToken.Parse(content).ToString());
+                    }
+
                     JArray tests = ((dynamic)JObject.Parse(content)).data;
 
                     if (tests.Count == 0)
@@ -51,9 +58,9 @@ namespace BackupRunscope
                         continue;
                     }
 
-                    JArray savetests = new JArray();
+                    var savetests = new List<string>();
 
-                    foreach (JToken test in tests.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.InvariantCultureIgnoreCase))
+                    foreach (JToken test in tests.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.OrdinalIgnoreCase))
                     {
                         string testname = ((dynamic)test).name.Value;
                         string testid = ((dynamic)test).id.Value;
@@ -78,14 +85,21 @@ namespace BackupRunscope
                         RemoveElements(testdetails, "id", 7);
                         RemoveElements(testdetails, "last_run", 7);
 
-                        savetests.Add(GetSortedJson(testdetails, 999));
+                        savetests.Add(GetStableSortedJson(testdetails));
 
                         testcount++;
                     }
 
                     string filename = Path.Combine(folder, $"{bucketname}.json");
+
+                    string savecontent = "[" + Environment.NewLine +
+                        string.Join($",{Environment.NewLine}", savetests.Select(t => "  " + t.Replace(Environment.NewLine, $"{Environment.NewLine}  ")))
+                        + Environment.NewLine + "]";
+
                     Log($"Saving: '{filename}'");
-                    File.WriteAllText(filename, savetests.ToString());
+                    File.WriteAllText(filename, savecontent);
+
+                    bucketcount++;
                 }
 
                 Log($"Got {testcount} tests.");
@@ -107,51 +121,41 @@ namespace BackupRunscope
             }
         }
 
-        static JToken GetSortedJson(JToken jtoken, int depth)
+        static string GetStableSortedJson(JToken jtoken, int level = 0)
         {
-            if (depth > 0 && jtoken.Type == JTokenType.Object)
+            string indent = new string(' ', level * 2);
+            string indentChild = new string(' ', (level + 1) * 2);
+
+            if (jtoken.Type == JTokenType.Object)
             {
-                JObject old = jtoken as JObject;
-                JObject jobject = new JObject();
-
-                foreach (JToken child in old.Children().OrderByDescending(c => c.Path, StringComparer.InvariantCultureIgnoreCase))
-                {
-                    jobject.AddFirst(GetSortedJson(child, depth - 1));
-                }
-
-                return jobject;
+                var sortedChildren = jtoken.Children().Select(c => GetStableSortedJson(c, level + 1)).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
+                return sortedChildren.Count() == 0 ?
+                    "{}" :
+                    "{" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "}";
             }
-            else if (depth > 0 && jtoken.Type == JTokenType.Property)
+            else if (jtoken.Type == JTokenType.Property)
             {
-                JProperty old = jtoken as JProperty;
-                JProperty jproperty = new JProperty(old.Name, old.Value);
-
-                foreach (JToken child in old.Children().OrderByDescending(c => c.Path, StringComparer.InvariantCultureIgnoreCase))
-                {
-                    JToken newchild = GetSortedJson(child, depth - 1);
-                    jproperty.Value = newchild;
-                }
-
-                return jproperty;
+                JProperty old = (JProperty)jtoken;
+                return "\"" + old.Name + "\": " + GetStableSortedJson(old.Value, level);
             }
-            else if (depth > 0 && jtoken.Type == JTokenType.Array)
+            else if (jtoken.Type == JTokenType.Array)
             {
-                JArray old = jtoken as JArray;
-                JArray jarray = new JArray();
-
-                var sortedChildren = old.Select(c => GetSortedJson(c, depth - 1));
-
-                foreach (JToken child in sortedChildren)
-                {
-                    jarray.Add(child);
-                }
-
-                return jarray;
+                var sortedChildren = jtoken.Select(c => GetStableSortedJson(c, level + 1));
+                return sortedChildren.Count() == 0 ?
+                    "[]" :
+                    "[" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "]";
             }
             else
             {
-                // Boolean, Integer, String, Null
-                return jtoken;
+                // Unknown stuff.
+                using (var sw = new StringWriter())
+                {
+                    using (var jw = new JsonTextWriter(sw))
+                    {
+                        jtoken.WriteTo(jw);
+                        return sw.ToString();
+                    }
+                }
             }
         }
 
