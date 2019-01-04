@@ -84,7 +84,13 @@ namespace BackupGrafana
                 git.Email = gitemail;
                 git.SimulatePush = gitsimulatepush;
 
-                if (!git.Push())
+                bool result = false;
+                for (int tries = 0; tries < 5 && !result; tries++)
+                {
+                    result = git.Push();
+                }
+
+                if (!result)
                 {
                     return 1;
                 }
