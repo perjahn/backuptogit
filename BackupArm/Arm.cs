@@ -90,16 +90,24 @@ namespace BackupArm
         static async Task ExportResourceGroupAsync(HttpClient client, string subscriptionName, string resourceGroupId, string resourceGroupName, string folder)
         {
             // The export api is highly volatile, cannot usually export any resource consistently.
-            // Let's try 12 times, and keep the one with fewest export errors.
+            // Let's try (up to) 12 times, and keep the one with fewest export errors.
 
             string url = $"{resourceGroupId}/exportTemplate?api-version=2015-01-01";
-            dynamic jobject = JObject.Parse("{\"options\": \"IncludeParameterDefaultValue\", \"resources\": [\"*\"]}");
+            JObject jobject = JObject.Parse("{\"options\": \"IncludeParameterDefaultValue\", \"resources\": [\"*\"]}");
 
-            var results = new JObject[12];
+            var results = new List<JObject>();
 
             for (int tries = 0; tries < 12; tries++)
             {
-                results[tries] = await PostHttpStringAsync(client, url, jobject);
+                try
+                {
+                    results.Add(await PostHttpStringAsync(client, url, jobject));
+                }
+                catch (IOException ex)
+                {
+                    Log($"Couldn't post to (try {tries}): {Environment.NewLine}'{url}'{Environment.NewLine}'{jobject.ToString()}'{Environment.NewLine}{ex.ToString()}");
+                }
+
                 await Task.Delay(5000);
             }
 
@@ -119,7 +127,7 @@ namespace BackupArm
                         "Microsoft.Web/sites/deployments",
                         "Microsoft.Web/sites/slots/deployments" },
                 filename);
-            jobject = GetSortedJson(jobject);
+            jobject = (JObject)GetSortedJson(jobject);
 
             string folderPath = Path.GetDirectoryName(filename);
             if (!Directory.Exists(folderPath))
