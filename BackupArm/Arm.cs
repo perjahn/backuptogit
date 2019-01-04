@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -127,7 +128,7 @@ namespace BackupArm
                         "Microsoft.Web/sites/deployments",
                         "Microsoft.Web/sites/slots/deployments" },
                 filename);
-            jobject = (JObject)GetSortedJson(jobject);
+            string json = GetStableSortedJson(jobject);
 
             string folderPath = Path.GetDirectoryName(filename);
             if (!Directory.Exists(folderPath))
@@ -137,7 +138,7 @@ namespace BackupArm
             }
 
             Log($"Saving: '{filename}'" + (minerrors != maxerrors ? $" (Got {minerrors}-{maxerrors} errors)" : string.Empty));
-            File.WriteAllText(filename, jobject.ToString());
+            File.WriteAllText(filename, json);
         }
 
         static int GetErrorCount(JObject jobject)
@@ -197,47 +198,41 @@ namespace BackupArm
             return jobject;
         }
 
-        static JToken GetSortedJson(JToken jtoken)
+        static string GetStableSortedJson(JToken jtoken, int level = 0)
         {
+            string indent = new string(' ', level * 2);
+            string indentChild = new string(' ', (level + 1) * 2);
+
             if (jtoken.Type == JTokenType.Object)
             {
-                JObject old = (JObject)jtoken;
-                JObject jobject = new JObject();
-
-                var sortedChildren = old.Children().Select(c => GetSortedJson(c)).OrderBy(c => c.ToString(), StringComparer.InvariantCulture);
-
-                foreach (JToken child in sortedChildren)
-                {
-                    jobject.Add(child);
-                }
-
-                return jobject;
+                var sortedChildren = jtoken.Children().Select(c => GetStableSortedJson(c, level + 1)).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
+                return sortedChildren.Count() == 0 ?
+                    "{}" :
+                    "{" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "}";
             }
             else if (jtoken.Type == JTokenType.Property)
             {
                 JProperty old = (JProperty)jtoken;
-                JProperty jproperty = new JProperty(old.Name, GetSortedJson(old.Value));
-
-                return jproperty;
+                return "\"" + old.Name + "\": " + GetStableSortedJson(old.Value, level);
             }
             else if (jtoken.Type == JTokenType.Array)
             {
-                JArray old = (JArray)jtoken;
-                JArray jarray = new JArray();
-
-                var sortedChildren = old.Select(c => GetSortedJson(c)).OrderBy(c => c.ToString(), StringComparer.InvariantCulture);
-
-                foreach (JToken child in sortedChildren)
-                {
-                    jarray.Add(child);
-                }
-
-                return jarray;
+                var sortedChildren = jtoken.Select(c => GetStableSortedJson(c, level + 1)).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
+                return sortedChildren.Count() == 0 ?
+                    "[]" :
+                    "[" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "]";
             }
             else
             {
-                // Boolean, Integer, String, Null
-                return jtoken;
+                // Unknown stuff.
+                using (var sw = new StringWriter())
+                {
+                    using (var jw = new JsonTextWriter(sw))
+                    {
+                        jtoken.WriteTo(jw);
+                        return sw.ToString();
+                    }
+                }
             }
         }
 
