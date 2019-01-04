@@ -107,7 +107,13 @@ namespace BackupArm
                 git.ZipBinary = gitzipbinary;
                 git.ZipPassword = gitzippassword;
 
-                if (!git.Push())
+                bool result = false;
+                for (int tries = 0; tries < 5 && !result; tries++)
+                {
+                    result = git.Push();
+                }
+
+                if (!result)
                 {
                     return 1;
                 }
