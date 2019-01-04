@@ -179,7 +179,17 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
                 ZipBinary = gitzipbinary,
                 ZipPassword = gitzippassword
             };
-            git.Push();
+
+            bool result = false;
+            for (int tries = 0; tries < 5 && !result; tries++)
+            {
+                result = git.Push();
+            }
+
+            if (!result)
+            {
+                return;
+            }
         }
     }
 
