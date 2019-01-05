@@ -6,12 +6,13 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BackupGrafana
 {
     class Grafana
     {
-        public bool SaveDashboards(string serverurl, string username, string password, string folder)
+        public async Task<bool> SaveDashboards(string serverurl, string username, string password, string folder)
         {
             BackupToGit.SecureLogger.SensitiveStrings.AddRange(new[] { username, password });
 
@@ -20,19 +21,23 @@ namespace BackupGrafana
             Log($"Creating directory: '{folder}'");
             Directory.CreateDirectory(folder);
 
-            using (HttpClient client = new HttpClient())
+            using (var client = new HttpClient())
             {
                 var creds = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
 
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+                HttpResponseMessage result;
+                string json;
+
                 Log("Retrieving orgs.");
                 string url = $"{serverurl}/api/orgs";
-                string result;
                 try
                 {
-                    result = client.GetStringAsync(url).Result;
+                    result = await client.GetAsync(url);
+                    result.EnsureSuccessStatusCode();
+                    json = await result.Content.ReadAsStringAsync();
                 }
                 catch (AggregateException ex)
                 {
@@ -40,28 +45,41 @@ namespace BackupGrafana
                     return false;
                 }
 
-                JArray orgs = JArray.Parse(result);
+                var orgs = JArray.Parse(json);
+                Log($"Got {orgs.Count} organizations.");
 
                 foreach (dynamic org in orgs)
                 {
                     Log($"Switching to org: {org.id} '{org.name}'");
                     url = $"{serverurl}/api/user/using/{org.id}";
-                    var postresult = client.PostAsync(url, null);
-                    result = postresult.Result.Content.ReadAsStringAsync().Result;
+                    result = await client.PostAsync(url, null);
+                    result.EnsureSuccessStatusCode();
+                    json = await result.Content.ReadAsStringAsync();
+
+                    dynamic orgbody = JObject.Parse(json);
+                    Log($"Message: {orgbody.message}");
+
+                    await Task.Delay(5000);
+
 
                     Log("Searching for dashboards.");
                     url = $"{serverurl}/api/search/";
-                    result = client.GetStringAsync(url).Result;
+                    result = await client.GetAsync(url);
+                    result.EnsureSuccessStatusCode();
+                    json = await result.Content.ReadAsStringAsync();
 
-                    JArray array = JArray.Parse(result);
+                    var array = JArray.Parse(json);
+                    Log($"Got {array.Count} dashboards.");
 
                     foreach (dynamic j in array)
                     {
                         Log($"Retrieving dashboard: '{j.uri}'");
                         url = $"{serverurl}/api/dashboards/{j.uri}";
-                        result = client.GetStringAsync(url).Result;
+                        result = await client.GetAsync(url);
+                        result.EnsureSuccessStatusCode();
+                        json = await result.Content.ReadAsStringAsync();
 
-                        dynamic dashboard = JObject.Parse(result);
+                        dynamic dashboard = JObject.Parse(json);
 
                         string name = dashboard.meta.slug;
 
@@ -80,7 +98,7 @@ namespace BackupGrafana
 
         string PrettyName(string name)
         {
-            StringBuilder result = new StringBuilder();
+            var result = new StringBuilder();
 
             foreach (char c in name.ToCharArray())
             {

@@ -2,12 +2,13 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace BackupGrafana
 {
     class Program
     {
-        static int Main(string[] args)
+        static async Task<int> Main(string[] args)
         {
             BackupToGit.Git git = new BackupToGit.Git();
             BackupToGit.SecureLogger.Logfile = Path.Combine(Directory.GetCurrentDirectory(), "BackupGrafana.log");
@@ -27,7 +28,7 @@ namespace BackupGrafana
             string folder = "dashboards";
 
             Grafana grafana = new Grafana();
-            if (!grafana.SaveDashboards(url, username, password, folder))
+            if (!await grafana.SaveDashboards(url, username, password, folder))
             {
                 return 1;
             }
