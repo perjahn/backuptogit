@@ -35,8 +35,7 @@ namespace BackupGrafana
                 string url = $"{serverurl}/api/orgs";
                 try
                 {
-                    result = await client.GetAsync(url);
-                    result.EnsureSuccessStatusCode();
+                    result = await HttpGet(client, url, 5);
                     json = await result.Content.ReadAsStringAsync();
                 }
                 catch (AggregateException ex)
@@ -52,8 +51,7 @@ namespace BackupGrafana
                 {
                     Log($"Switching to org: {org.id} '{org.name}'");
                     url = $"{serverurl}/api/user/using/{org.id}";
-                    result = await client.PostAsync(url, null);
-                    result.EnsureSuccessStatusCode();
+                    result = await HttpPost(client, url, null, 5);
                     json = await result.Content.ReadAsStringAsync();
 
                     dynamic orgbody = JObject.Parse(json);
@@ -64,8 +62,7 @@ namespace BackupGrafana
 
                     Log("Searching for dashboards.");
                     url = $"{serverurl}/api/search/";
-                    result = await client.GetAsync(url);
-                    result.EnsureSuccessStatusCode();
+                    result = await HttpGet(client, url, 5);
                     json = await result.Content.ReadAsStringAsync();
 
                     var array = JArray.Parse(json);
@@ -75,8 +72,7 @@ namespace BackupGrafana
                     {
                         Log($"Retrieving dashboard: '{j.uri}'");
                         url = $"{serverurl}/api/dashboards/{j.uri}";
-                        result = await client.GetAsync(url);
-                        result.EnsureSuccessStatusCode();
+                        result = await HttpGet(client, url, 5);
                         json = await result.Content.ReadAsStringAsync();
 
                         dynamic dashboard = JObject.Parse(json);
@@ -94,6 +90,44 @@ namespace BackupGrafana
             }
 
             return true;
+        }
+
+        async Task<HttpResponseMessage> HttpGet(HttpClient client, string url, int retries)
+        {
+            for (int retry = 0; retry < retries; retry++)
+            {
+                try
+                {
+                    var result = await client.GetAsync(url);
+                    result.EnsureSuccessStatusCode();
+                    return result;
+                }
+                catch (HttpRequestException ex) when (retry < (retries - 1))
+                {
+                    Log($"Error (try {retry + 1}): '{url}' {ex.ToString()}");
+                    await Task.Delay(5000);
+                }
+            }
+            return null;  // Will not happen
+        }
+
+        async Task<HttpResponseMessage> HttpPost(HttpClient client, string url, HttpContent content, int retries)
+        {
+            for (int retry = 0; retry < retries; retry++)
+            {
+                try
+                {
+                    var result = await client.PostAsync(url, content);
+                    result.EnsureSuccessStatusCode();
+                    return result;
+                }
+                catch (HttpRequestException ex) when (retry < (retries - 1))
+                {
+                    Log($"Error, try {retry + 1}: '{url}' {ex.ToString()}");
+                    await Task.Delay(5000);
+                }
+            }
+            return null;  // Will not happen
         }
 
         string PrettyName(string name)
