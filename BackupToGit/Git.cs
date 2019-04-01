@@ -121,6 +121,7 @@ namespace BackupToGit
 
                 Log("Setting config...");
                 RunCommand(GitBinary, "config push.default simple");
+                RunCommand(GitBinary, "config core.ignorecase false");
 
                 Log("Pushing...");
                 if (SimulatePush)
