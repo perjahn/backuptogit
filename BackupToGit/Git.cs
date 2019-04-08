@@ -112,6 +112,7 @@ namespace BackupToGit
                 Log("Setting config...");
                 RunCommand(GitBinary, $"config user.email {Email}");
                 RunCommand(GitBinary, $"config user.name {Username}");
+                RunCommand(GitBinary, "config core.ignorecase false");
 
                 string date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 string commitmessage = $"Automatic gathering of files: {date}";
@@ -121,7 +122,6 @@ namespace BackupToGit
 
                 Log("Setting config...");
                 RunCommand(GitBinary, "config push.default simple");
-                RunCommand(GitBinary, "config core.ignorecase false");
 
                 Log("Pushing...");
                 if (SimulatePush)
