@@ -30,7 +30,7 @@ namespace BackupRunscope
             string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
             string gitserver = Environment.GetEnvironmentVariable("gitserver");
             string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
-            string gitsubrepopath = Environment.GetEnvironmentVariable("gitsubrepopath");
+            string gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
             string gitusername = Environment.GetEnvironmentVariable("gitusername");
             string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
             string gitemail = Environment.GetEnvironmentVariable("gitemail");
@@ -45,7 +45,7 @@ namespace BackupRunscope
                 gitbinary = @"C:\Program Files\Git\bin\git.exe";
             }
 
-            if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitsubrepopath) ||
+            if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitreposubpath) ||
                 string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
             {
                 StringBuilder missing = new StringBuilder();
@@ -55,8 +55,8 @@ namespace BackupRunscope
                     missing.AppendLine("Missing gitserver.");
                 if (string.IsNullOrEmpty(gitrepopath))
                     missing.AppendLine("Missing gitrepopath.");
-                if (string.IsNullOrEmpty(gitsubrepopath))
-                    missing.AppendLine("Missing gitsubrepopath.");
+                if (string.IsNullOrEmpty(gitreposubpath))
+                    missing.AppendLine("Missing gitreposubpath.");
                 if (string.IsNullOrEmpty(gitusername))
                     missing.AppendLine("Missing gitusername.");
                 if (string.IsNullOrEmpty(gitpassword))
@@ -72,7 +72,7 @@ namespace BackupRunscope
                 git.SourceFolder = gitsourcefolder;
                 git.Server = gitserver;
                 git.RepoPath = gitrepopath;
-                git.SubRepoPath = gitsubrepopath;
+                git.RepoSubPath = gitreposubpath;
                 git.Username = gitusername;
                 git.Password = gitpassword;
                 git.Email = gitemail;
