@@ -36,7 +36,7 @@ Optional environment variables, used for pushing to git (with examples):
 gitbinary                - C:\Program Files\Git\git.exe
 gitserver                - gitserver.organization.com
 gitrepopath              - organization/tcconfig.git
-gitsubrepopath           - projects, subfolder within the repo.
+gitreposubpath           - projects, subfolder within the repo.
 gitusername              - luser
 gitpassword              - abc123
 gitemail                 - noreply@example.com
@@ -123,7 +123,7 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
         string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
         string gitserver = Environment.GetEnvironmentVariable("gitserver");
         string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
-        string gitsubrepopath = Environment.GetEnvironmentVariable("gitsubrepopath");
+        string gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
         string gitusername = Environment.GetEnvironmentVariable("gitusername");
         string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
         string gitemail = Environment.GetEnvironmentVariable("gitemail");
@@ -141,7 +141,7 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
         bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
 
-        if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitsubrepopath) ||
+        if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitreposubpath) ||
             string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
         {
             StringBuilder missing = new StringBuilder();
@@ -151,8 +151,8 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
                 missing.AppendLine("Missing gitserver.");
             if (string.IsNullOrEmpty(gitrepopath))
                 missing.AppendLine("Missing gitrepopath.");
-            if (string.IsNullOrEmpty(gitsubrepopath))
-                missing.AppendLine("Missing gitsubrepopath.");
+            if (string.IsNullOrEmpty(gitreposubpath))
+                missing.AppendLine("Missing gitreposubpath.");
             if (string.IsNullOrEmpty(gitusername))
                 missing.AppendLine("Missing gitusername.");
             if (string.IsNullOrEmpty(gitpassword))
@@ -170,7 +170,7 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
                 SourceFolder = shortTargetfolder,
                 Server = gitserver,
                 RepoPath = gitrepopath,
-                SubRepoPath = gitsubrepopath,
+                RepoSubPath = gitreposubpath,
                 Username = gitusername,
                 Password = gitpassword,
                 Email = gitemail,
