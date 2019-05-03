@@ -106,13 +106,13 @@ namespace BackupToGit
 
             try
             {
-                Log("Adding/updating/deleting files...");
-                RunCommand(GitBinary, "--no-pager add -A");
-
                 Log("Setting config...");
                 RunCommand(GitBinary, $"config user.email {Email}");
                 RunCommand(GitBinary, $"config user.name {Username}");
                 RunCommand(GitBinary, "config core.ignorecase false");
+
+                Log("Adding/updating/deleting files...");
+                RunCommand(GitBinary, "--no-pager add -A");
 
                 string date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                 string commitmessage = $"Automatic gathering of files: {date}";
