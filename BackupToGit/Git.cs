@@ -12,7 +12,7 @@ namespace BackupToGit
         public string SourceFolder { get; set; }
         public string Server { get; set; }
         public string RepoPath { get; set; }
-        public string SubRepoPath { get; set; }
+        public string RepoSubPath { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
         public string Email { get; set; }
@@ -53,7 +53,7 @@ namespace BackupToGit
 
             RunCommand(GitBinary, $"--no-pager clone {url}");
 
-            string subrepopath = Path.Combine(rootfolder, SubRepoPath);
+            string subrepopath = Path.Combine(rootfolder, RepoSubPath);
 
             string comparetarget = subrepopath;
             if (!string.IsNullOrEmpty(ZipBinary))
@@ -89,7 +89,7 @@ namespace BackupToGit
             }
             else
             {
-                if (SubRepoPath != ".")
+                if (RepoSubPath != ".")
                 {
                     Filesystem.RobustDelete(subrepopath);
                 }
