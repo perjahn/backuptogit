@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,7 +92,7 @@ namespace BackupArm
         static async Task ExportResourceGroupAsync(HttpClient client, string subscriptionName, string resourceGroupId, string resourceGroupName, string folder)
         {
             // The export api is highly volatile, cannot usually export any resource consistently.
-            // Let's try (up to) 12 times, and keep the one with fewest export errors.
+            // Let's try 12 times, and keep the one with fewest export errors.
 
             string url = $"{resourceGroupId}/exportTemplate?api-version=2015-01-01";
             JObject jobject = JObject.Parse("{\"options\": \"IncludeParameterDefaultValue\", \"resources\": [\"*\"]}");
@@ -104,7 +105,7 @@ namespace BackupArm
                 {
                     results.Add(await PostHttpStringAsync(client, url, jobject));
                 }
-                catch (IOException ex)
+                catch (Exception ex) when (ex is IOException || ex is TaskCanceledException || ex is SocketException)
                 {
                     Log($"Couldn't post to (try {tries}): {Environment.NewLine}'{url}'{Environment.NewLine}'{jobject.ToString()}'{Environment.NewLine}{ex.ToString()}");
                 }
