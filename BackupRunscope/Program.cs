@@ -102,8 +102,7 @@ namespace BackupRunscope
             }
             else
             {
-                bool boolValue;
-                if (!bool.TryParse(stringValue, out boolValue))
+                if (!bool.TryParse(stringValue, out bool boolValue))
                 {
                     return defaultValue;
                 }
