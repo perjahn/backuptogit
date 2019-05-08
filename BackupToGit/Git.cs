@@ -146,15 +146,7 @@ namespace BackupToGit
         {
             Log($"Running: '{binfile}' '{args}'");
 
-            Process process = new Process
-            {
-                StartInfo = new ProcessStartInfo(binfile, args)
-                {
-                    UseShellExecute = false
-                }
-            };
-
-            process.Start();
+            var process = Process.Start(binfile, args);
             process.WaitForExit();
 
             if (process.ExitCode != 0)
