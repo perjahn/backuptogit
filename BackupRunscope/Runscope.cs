@@ -19,16 +19,20 @@ namespace BackupRunscope
             Directory.CreateDirectory(folder);
 
 
-            string url = "https://api.runscope.com/buckets";
+            var url = "https://api.runscope.com/buckets";
 
-            using (HttpClient client = new HttpClient())
+            using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", access_token);
-                //client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
                 var response = await client.GetAsync(url);
                 response.EnsureSuccessStatusCode();
-                string content = await response.Content.ReadAsStringAsync();
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RunscopeRestDebug")))
+                {
+                    File.WriteAllText($"bucketsresult.json", JToken.Parse(content).ToString());
+                }
 
                 JArray buckets = ((dynamic)JObject.Parse(content)).data;
 
@@ -36,12 +40,18 @@ namespace BackupRunscope
                 int bucketcount = 0;
                 int testcount = 0;
 
-                foreach (JToken bucket in buckets.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.OrdinalIgnoreCase))
+                foreach (var bucket in buckets.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.OrdinalIgnoreCase))
                 {
                     string bucketname = ((dynamic)bucket).name.Value;
                     string tests_url = ((dynamic)bucket).tests_url.Value;
 
-                    response = await client.GetAsync(tests_url);
+                    var baseUri = new UriBuilder(tests_url)
+                    {
+                        Query = "count=10000"
+                    };
+
+                    Log($"Retrieving: '{baseUri.Uri.ToString()}'");
+                    response = await client.GetAsync(baseUri.Uri);
                     response.EnsureSuccessStatusCode();
                     content = await response.Content.ReadAsStringAsync();
 
@@ -59,14 +69,14 @@ namespace BackupRunscope
 
                     var savetests = new List<string>();
 
-                    foreach (JToken test in tests.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.OrdinalIgnoreCase))
+                    foreach (var test in tests.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.OrdinalIgnoreCase))
                     {
-                        string testname = ((dynamic)test).name.Value;
-                        string testid = ((dynamic)test).id.Value;
+                        var testname = ((dynamic)test).name.Value;
+                        var testid = ((dynamic)test).id.Value;
 
-                        string fullname = GetCleanName(bucketname) + "." + GetCleanName(testname);
+                        var fullname = $"{GetCleanName(bucketname)}.{GetCleanName(testname)}";
 
-                        string testurl = $"{tests_url}/{testid}";
+                        var testurl = $"{tests_url}/{testid}";
 
                         Log($"Exporting: '{fullname}'");
                         response = await client.GetAsync(testurl);
@@ -89,9 +99,9 @@ namespace BackupRunscope
                         testcount++;
                     }
 
-                    string filename = Path.Combine(folder, $"{bucketname}.json");
+                    var filename = Path.Combine(folder, $"{bucketname}.json");
 
-                    string savecontent = "[" + Environment.NewLine +
+                    var savecontent = "[" + Environment.NewLine +
                         string.Join($",{Environment.NewLine}", savetests.Select(t => "  " + t.Replace(Environment.NewLine, $"{Environment.NewLine}  ")))
                         + Environment.NewLine + "]";
 
@@ -107,7 +117,7 @@ namespace BackupRunscope
 
         static void RemoveElements(JObject jobject, string name, int depth)
         {
-            JToken[] ids = jobject
+            var ids = jobject
                 .DescendantsAndSelf()
                 .Where(o => o.Ancestors().Count() < depth)
                 .Select(o => o as JProperty)
@@ -122,8 +132,8 @@ namespace BackupRunscope
 
         static string GetStableSortedJson(JToken jtoken, int level = 0)
         {
-            string indent = new string(' ', level * 2);
-            string indentChild = new string(' ', (level + 1) * 2);
+            var indent = new string(' ', level * 2);
+            var indentChild = new string(' ', (level + 1) * 2);
 
             if (jtoken.Type == JTokenType.Object)
             {
@@ -134,7 +144,7 @@ namespace BackupRunscope
             }
             else if (jtoken.Type == JTokenType.Property)
             {
-                JProperty old = (JProperty)jtoken;
+                var old = (JProperty)jtoken;
                 return "\"" + old.Name + "\": " + GetStableSortedJson(old.Value, level);
             }
             else if (jtoken.Type == JTokenType.Array)
@@ -160,9 +170,9 @@ namespace BackupRunscope
 
         static string GetCleanName(string s)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
-            foreach (char c in s.ToArray())
+            foreach (var c in s.ToArray())
             {
                 if (char.IsLetterOrDigit(c) || c == ' ' || c == '-')
                 {
