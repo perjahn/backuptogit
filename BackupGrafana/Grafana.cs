@@ -23,20 +23,21 @@ namespace BackupGrafana
 
             using (var client = new HttpClient())
             {
-                var creds = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{password}"));
+                var creds = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
 
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                HttpResponseMessage result;
                 string json;
 
                 Log("Retrieving orgs.");
-                string url = $"{serverurl}/api/orgs";
+                var url = $"{serverurl}/api/orgs";
                 try
                 {
-                    result = await HttpGet(client, url, 5);
-                    json = await result.Content.ReadAsStringAsync();
+                    using (var result = await HttpGet(client, url, 5))
+                    {
+                        json = await result.Content.ReadAsStringAsync();
+                    }
                 }
                 catch (AggregateException ex)
                 {
@@ -51,19 +52,24 @@ namespace BackupGrafana
                 {
                     Log($"Switching to org: {org.id} '{org.name}'");
                     url = $"{serverurl}/api/user/using/{org.id}";
-                    result = await HttpPost(client, url, null, 5);
-                    json = await result.Content.ReadAsStringAsync();
+                    using (var result = await HttpPost(client, url, null, 5))
+                    {
+                        json = await result.Content.ReadAsStringAsync();
+                    }
 
                     dynamic orgbody = JObject.Parse(json);
                     Log($"Message: {orgbody.message}");
 
+                    // Some proxies (ARR) have broken buffering.
                     await Task.Delay(5000);
 
 
                     Log("Searching for dashboards.");
                     url = $"{serverurl}/api/search/";
-                    result = await HttpGet(client, url, 5);
-                    json = await result.Content.ReadAsStringAsync();
+                    using (var result = await HttpGet(client, url, 5))
+                    {
+                        json = await result.Content.ReadAsStringAsync();
+                    }
 
                     var array = JArray.Parse(json);
                     Log($"Got {array.Count} dashboards.");
@@ -72,8 +78,10 @@ namespace BackupGrafana
                     {
                         Log($"Retrieving dashboard: '{j.uri}'");
                         url = $"{serverurl}/api/dashboards/{j.uri}";
-                        result = await HttpGet(client, url, 5);
-                        json = await result.Content.ReadAsStringAsync();
+                        using (var result = await HttpGet(client, url, 5))
+                        {
+                            json = await result.Content.ReadAsStringAsync();
+                        }
 
                         dynamic dashboard = JObject.Parse(json);
 
@@ -94,7 +102,7 @@ namespace BackupGrafana
 
         async Task<HttpResponseMessage> HttpGet(HttpClient client, string url, int retries)
         {
-            for (int retry = 0; retry < retries; retry++)
+            for (var retry = 1; retry <= retries; retry++)
             {
                 try
                 {
@@ -102,9 +110,10 @@ namespace BackupGrafana
                     result.EnsureSuccessStatusCode();
                     return result;
                 }
-                catch (HttpRequestException ex) when (retry < (retries - 1))
+                catch (HttpRequestException ex) when (retry < retries)
                 {
-                    Log($"Error (try {retry + 1}): '{url}' {ex.ToString()}");
+                    Log($"Error (try {retry}): '{url}' {ex.ToString()}");
+                    // Some proxies (ARR) have broken buffering.
                     await Task.Delay(5000);
                 }
             }
@@ -113,7 +122,7 @@ namespace BackupGrafana
 
         async Task<HttpResponseMessage> HttpPost(HttpClient client, string url, HttpContent content, int retries)
         {
-            for (int retry = 0; retry < retries; retry++)
+            for (var retry = 1; retry <= retries; retry++)
             {
                 try
                 {
@@ -121,9 +130,10 @@ namespace BackupGrafana
                     result.EnsureSuccessStatusCode();
                     return result;
                 }
-                catch (HttpRequestException ex) when (retry < (retries - 1))
+                catch (HttpRequestException ex) when (retry < retries)
                 {
-                    Log($"Error, try {retry + 1}: '{url}' {ex.ToString()}");
+                    Log($"Error, try {retry}: '{url}' {ex.ToString()}");
+                    // Some proxies (ARR) have broken buffering.
                     await Task.Delay(5000);
                 }
             }

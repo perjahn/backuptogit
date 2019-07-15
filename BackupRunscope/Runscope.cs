@@ -25,20 +25,23 @@ namespace BackupRunscope
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", access_token);
 
-                var response = await client.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-                var content = await response.Content.ReadAsStringAsync();
+                string bucketsContent;
+                using (var response = await client.GetAsync(url))
+                {
+                    response.EnsureSuccessStatusCode();
+                    bucketsContent = await response.Content.ReadAsStringAsync();
+                }
 
                 if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RunscopeRestDebug")))
                 {
-                    File.WriteAllText($"bucketsresult.json", JToken.Parse(content).ToString());
+                    File.WriteAllText($"bucketsresult.json", JToken.Parse(bucketsContent).ToString());
                 }
 
-                JArray buckets = ((dynamic)JObject.Parse(content)).data;
+                JArray buckets = ((dynamic)JObject.Parse(bucketsContent)).data;
 
                 Log($"Found {buckets.Count} buckets.");
-                int bucketcount = 0;
-                int testcount = 0;
+                var bucketcount = 0;
+                var testcount = 0;
 
                 foreach (var bucket in buckets.OrderBy(b => (string)((dynamic)b).name.Value, StringComparer.OrdinalIgnoreCase))
                 {
@@ -50,17 +53,21 @@ namespace BackupRunscope
                         Query = "count=10000"
                     };
 
+                    string bucketContent;
+
                     Log($"Retrieving: '{baseUri.Uri.ToString()}'");
-                    response = await client.GetAsync(baseUri.Uri);
-                    response.EnsureSuccessStatusCode();
-                    content = await response.Content.ReadAsStringAsync();
+                    using (var response = await client.GetAsync(baseUri.Uri))
+                    {
+                        response.EnsureSuccessStatusCode();
+                        bucketContent = await response.Content.ReadAsStringAsync();
+                    }
 
                     if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RunscopeRestDebug")))
                     {
-                        File.WriteAllText($"bucketresult_{bucketcount}.json", JToken.Parse(content).ToString());
+                        File.WriteAllText($"bucketresult_{bucketcount}.json", JToken.Parse(bucketContent).ToString());
                     }
 
-                    JArray tests = ((dynamic)JObject.Parse(content)).data;
+                    JArray tests = ((dynamic)JObject.Parse(bucketContent)).data;
 
                     if (tests.Count == 0)
                     {
@@ -78,17 +85,21 @@ namespace BackupRunscope
 
                         var testurl = $"{tests_url}/{testid}";
 
+                        string testsContent;
+
                         Log($"Exporting: '{fullname}'");
-                        response = await client.GetAsync(testurl);
-                        response.EnsureSuccessStatusCode();
-                        content = await response.Content.ReadAsStringAsync();
+                        using (var response = await client.GetAsync(testurl))
+                        {
+                            response.EnsureSuccessStatusCode();
+                            testsContent = await response.Content.ReadAsStringAsync();
+                        }
 
                         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("RunscopeRestDebug")))
                         {
-                            File.WriteAllText($"testresult_{testcount}.json", JToken.Parse(content).ToString());
+                            File.WriteAllText($"testresult_{testcount}.json", JToken.Parse(testsContent).ToString());
                         }
 
-                        dynamic testdetails = ((dynamic)JObject.Parse(content)).data;
+                        dynamic testdetails = ((dynamic)JObject.Parse(testsContent)).data;
 
                         RemoveElements(testdetails, "exported_at", 7);
                         RemoveElements(testdetails, "id", 7);

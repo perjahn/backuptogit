@@ -206,37 +206,6 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
         }
     }
 
-    static void CopyFolder(string sourcefolder, string targetfolder)
-    {
-        string[] files = Directory.GetFiles(sourcefolder, "*", SearchOption.AllDirectories)
-            .Select(f => f.StartsWith(@".\") ? f.Substring(2) : f)
-            .ToArray();
-
-        Log($"Copying {files.Length} files to: '{targetfolder}'");
-
-        int count = 0;
-
-        foreach (string sourcefile in files)
-        {
-            string targetfile = Path.Combine(targetfolder, sourcefile.Substring(sourcefolder.Length + 1));
-
-            string folder = Path.GetDirectoryName(targetfile);
-
-            if (!Directory.Exists(folder))
-            {
-                Log($"Creating target folder: '{folder}'");
-                Directory.CreateDirectory(folder);
-            }
-
-            Log($"Copying: '{sourcefile}' -> '{targetfile}'");
-
-            File.Copy(sourcefile, targetfile, true);
-            count++;
-        }
-
-        Log($"Copied {files.Length} files.");
-    }
-
     static void CopyConfigFiles(string sourcefolder, string targetfolder, bool includebuildnumberfiles)
     {
         string[] files = Directory.GetFiles(sourcefolder, "*", SearchOption.AllDirectories)
@@ -330,35 +299,6 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
         string hostname = Dns.GetHostName();
         string now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
         Console.WriteLine($"{hostname}: {now}: {message}");
-    }
-
-    static T LogTCSection<T>(string message, Func<T> func)
-    {
-        ConsoleColor oldColor = Console.ForegroundColor;
-        try
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"##teamcity[blockOpened name='{message}']");
-        }
-        finally
-        {
-            Console.ForegroundColor = oldColor;
-        }
-
-        T result = func.Invoke();
-
-        oldColor = Console.ForegroundColor;
-        try
-        {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"##teamcity[blockClosed name='{message}']");
-        }
-        finally
-        {
-            Console.ForegroundColor = oldColor;
-        }
-
-        return result;
     }
 
     static void LogTCSection(string message, IEnumerable<string> collection)

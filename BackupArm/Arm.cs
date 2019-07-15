@@ -19,17 +19,17 @@ namespace BackupArm
 
         public static async Task GetAzureAccessTokensAsync(ServicePrincipal[] servicePrincipals)
         {
-            using (HttpClient client = new HttpClient())
+            using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                string loginurl = "https://login.microsoftonline.com";
-                string managementurlForAuth = "https://management.core.windows.net/";
+                var loginurl = "https://login.microsoftonline.com";
+                var managementurlForAuth = "https://management.core.windows.net/";
 
                 foreach (var servicePrincipal in servicePrincipals)
                 {
-                    string url = $"{loginurl}/{servicePrincipal.TenantId}/oauth2/token?api-version=1.0";
-                    string data =
+                    var url = $"{loginurl}/{servicePrincipal.TenantId}/oauth2/token?api-version=1.0";
+                    var data =
                         $"grant_type=client_credentials&" +
                         $"resource={WebUtility.UrlEncode(managementurlForAuth)}&" +
                         $"client_id={WebUtility.UrlEncode(servicePrincipal.ClientId)}&" +
@@ -54,14 +54,14 @@ namespace BackupArm
 
         public static async Task SaveArmTemplatesAsync(ServicePrincipal servicePrincipal, string folder)
         {
-            using (HttpClient client = new HttpClient())
+            using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", servicePrincipal.AccessToken);
                 client.BaseAddress = new Uri("https://management.azure.com");
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
 
-                string url = "/subscriptions?api-version=2016-06-01";
+                var url = "/subscriptions?api-version=2016-06-01";
 
                 dynamic result = await GetHttpStringAsync(client, url);
                 JArray subscriptions = result.value;
@@ -93,12 +93,12 @@ namespace BackupArm
             // The export api is highly volatile, cannot usually export any resource consistently.
             // Let's try 12 times, and keep the one with fewest export errors.
 
-            string url = $"{resourceGroupId}/exportTemplate?api-version=2015-01-01";
-            JObject jobject = JObject.Parse("{\"options\": \"IncludeParameterDefaultValue\", \"resources\": [\"*\"]}");
+            var url = $"{resourceGroupId}/exportTemplate?api-version=2015-01-01";
+            var jobject = JObject.Parse("{\"options\": \"IncludeParameterDefaultValue\", \"resources\": [\"*\"]}");
 
             var results = new List<JObject>();
 
-            for (int tries = 0; tries < 12; tries++)
+            for (var tries = 0; tries < 12; tries++)
             {
                 try
                 {
@@ -112,11 +112,11 @@ namespace BackupArm
                 await Task.Delay(5000);
             }
 
-            int minerrors = results.Min(o => GetErrorCount(o));
-            int maxerrors = results.Max(o => GetErrorCount(o));
-            JObject result = results.First(o => GetErrorCount(o) == minerrors);
+            var minerrors = results.Min(o => GetErrorCount(o));
+            var maxerrors = results.Max(o => GetErrorCount(o));
+            var result = results.First(o => GetErrorCount(o) == minerrors);
 
-            string filename = Path.Combine(folder, subscriptionName, $"{resourceGroupName}.json");
+            var filename = Path.Combine(folder, subscriptionName, $"{resourceGroupName}.json");
 
             jobject = ScrubSecrets(result, filename);
             jobject = DeleteSpuriousErrors(jobject,
@@ -128,9 +128,9 @@ namespace BackupArm
                         "Microsoft.Web/sites/deployments",
                         "Microsoft.Web/sites/slots/deployments" },
                 filename);
-            string json = GetStableSortedJson(jobject);
+            var json = GetStableSortedJson(jobject);
 
-            string folderPath = Path.GetDirectoryName(filename);
+            var folderPath = Path.GetDirectoryName(filename);
             if (!Directory.Exists(folderPath))
             {
                 Log($"Creating folder: '{folderPath}'");
@@ -155,7 +155,7 @@ namespace BackupArm
 
         static JObject ScrubSecrets(JObject jobject, string name)
         {
-            string[] propertyNames = { "keyData", "xmlCfg", "commandToExecute" };
+            var propertyNames = new[] { "keyData", "xmlCfg", "commandToExecute" };
 
             var properties = jobject
                 .DescendantsAndSelf()
@@ -180,9 +180,9 @@ namespace BackupArm
 
             JArray details = (JArray)jobject["error"]["details"];
 
-            for (int i = 0; i < details.Count();)
+            for (var i = 0; i < details.Count();)
             {
-                string target = (string)details[i]["target"];
+                var target = (string)details[i]["target"];
 
                 if (errorTypes.Contains(target))
                 {
@@ -200,8 +200,8 @@ namespace BackupArm
 
         static string GetStableSortedJson(JToken jtoken, int level = 0)
         {
-            string indent = new string(' ', level * 2);
-            string indentChild = new string(' ', (level + 1) * 2);
+            var indent = new string(' ', level * 2);
+            var indentChild = new string(' ', (level + 1) * 2);
 
             if (jtoken.Type == JTokenType.Object)
             {
@@ -212,7 +212,7 @@ namespace BackupArm
             }
             else if (jtoken.Type == JTokenType.Property)
             {
-                JProperty old = (JProperty)jtoken;
+                var old = (JProperty)jtoken;
                 return "\"" + old.Name + "\": " + GetStableSortedJson(old.Value, level);
             }
             else if (jtoken.Type == JTokenType.Array)
@@ -238,17 +238,19 @@ namespace BackupArm
 
         static async Task<JObject> GetHttpStringAsync(HttpClient client, string url)
         {
-            var response = await client.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-            string result = await response.Content.ReadAsStringAsync();
-
-            if (result.Length > 0)
+            using (var response = await client.GetAsync(url))
             {
-                if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadAsStringAsync();
+
+                if (result.Length > 0)
                 {
-                    File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
+                    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                    {
+                        File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
+                    }
+                    return JObject.Parse(result);
                 }
-                return JObject.Parse(result);
             }
 
             return null;
@@ -256,17 +258,22 @@ namespace BackupArm
 
         static async Task<JObject> PostHttpStringAsync(HttpClient client, string url, JToken jsoncontent)
         {
-            var response = await client.PostAsync(url, new StringContent(jsoncontent.ToString(), Encoding.UTF8, "application/json"));
-            response.EnsureSuccessStatusCode();
-            string result = await response.Content.ReadAsStringAsync();
-
-            if (result.Length > 0)
+            using (var stringContent = new StringContent(jsoncontent.ToString(), Encoding.UTF8, "application/json"))
             {
-                if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                using (var response = await client.PostAsync(url, stringContent))
                 {
-                    File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
+                    response.EnsureSuccessStatusCode();
+                    var result = await response.Content.ReadAsStringAsync();
+
+                    if (result.Length > 0)
+                    {
+                        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                        {
+                            File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
+                        }
+                        return JObject.Parse(result);
+                    }
                 }
-                return JObject.Parse(result);
             }
 
             return null;
@@ -274,17 +281,22 @@ namespace BackupArm
 
         static async Task<JObject> PostHttpStringAsync(HttpClient client, string url, string content, string contenttype)
         {
-            var response = await client.PostAsync(url, new StringContent(content, Encoding.UTF8, contenttype));
-            response.EnsureSuccessStatusCode();
-            string result = await response.Content.ReadAsStringAsync();
-
-            if (result.Length > 0)
+            using (var stringContent = new StringContent(content, Encoding.UTF8, contenttype))
             {
-                if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                using (var response = await client.PostAsync(url, stringContent))
                 {
-                    File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
+                    response.EnsureSuccessStatusCode();
+                    var result = await response.Content.ReadAsStringAsync();
+
+                    if (result.Length > 0)
+                    {
+                        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                        {
+                            File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
+                        }
+                        return JObject.Parse(result);
+                    }
                 }
-                return JObject.Parse(result);
             }
 
             return null;
@@ -292,7 +304,7 @@ namespace BackupArm
 
         static string GetCleanName(string s)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
             foreach (char c in s.ToCharArray())
             {
