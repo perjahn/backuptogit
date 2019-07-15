@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 
 namespace BackupToGit
 {
@@ -43,22 +42,22 @@ namespace BackupToGit
                 return false;
             }
 
-            string rootfolder = Path.GetFileNameWithoutExtension(RepoPath);
+            var rootfolder = Path.GetFileNameWithoutExtension(RepoPath);
             Filesystem.RobustDelete(rootfolder);
 
 
-            string url = $"https://{Username}:{Password}@{Server}/{RepoPath}";
+            var url = $"https://{Username}:{Password}@{Server}/{RepoPath}";
 
             Log($"Using git url: '{url}'");
 
             RunCommand(GitBinary, $"--no-pager clone {url}");
 
-            string subrepopath = Path.Combine(rootfolder, RepoSubPath);
+            var subrepopath = Path.Combine(rootfolder, RepoSubPath);
 
-            string comparetarget = subrepopath;
+            var comparetarget = subrepopath;
             if (!string.IsNullOrEmpty(ZipBinary))
             {
-                string decrypt = string.IsNullOrEmpty(ZipPassword) ? string.Empty : $" \"-p{ZipPassword}\"";
+                var decrypt = string.IsNullOrEmpty(ZipPassword) ? string.Empty : $" \"-p{ZipPassword}\"";
 
                 comparetarget = Path.Combine("tmp", Path.GetFileName(SourceFolder));
 
@@ -82,7 +81,7 @@ namespace BackupToGit
             {
                 File.Delete(subrepopath);
 
-                string encrypt = string.IsNullOrEmpty(ZipPassword) ? string.Empty : $" -mhe \"-p{ZipPassword}\"";
+                var encrypt = string.IsNullOrEmpty(ZipPassword) ? string.Empty : $" -mhe \"-p{ZipPassword}\"";
 
                 Log($"Zipping files into git folder: '{SourceFolder}' -> '{subrepopath}'");
                 RunCommand(ZipBinary, $"a -mx9 \"{subrepopath}\" \"{SourceFolder}\"{encrypt}");
@@ -100,7 +99,7 @@ namespace BackupToGit
 
 
             // All git commands will be simpler if executed from repo root.
-            string orgdir = Directory.GetCurrentDirectory();
+            var orgdir = Directory.GetCurrentDirectory();
             Directory.SetCurrentDirectory(rootfolder);
             Log($"Current directory: '{Directory.GetCurrentDirectory()}'");
 
@@ -114,8 +113,8 @@ namespace BackupToGit
                 Log("Adding/updating/deleting files...");
                 RunCommand(GitBinary, "--no-pager add -A");
 
-                string date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-                string commitmessage = $"Automatic gathering of files: {date}";
+                var date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                var commitmessage = $"Automatic gathering of files: {date}";
 
                 Log("Committing...");
                 RunCommand(GitBinary, $"--no-pager commit -m \"{commitmessage}\"");

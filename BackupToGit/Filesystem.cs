@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -11,24 +10,24 @@ namespace BackupToGit
     {
         public static void CopyDirectory(string sourceDir, string targetDir)
         {
-            DirectoryInfo dir = new DirectoryInfo(sourceDir);
+            var dir = new DirectoryInfo(sourceDir);
 
-            DirectoryInfo[] dirs = dir.GetDirectories();
+            var dirs = dir.GetDirectories();
             if (!Directory.Exists(targetDir))
             {
                 Directory.CreateDirectory(targetDir);
             }
 
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
+            var files = dir.GetFiles();
+            foreach (var file in files)
             {
-                string temppath = Path.Combine(targetDir, file.Name);
+                var temppath = Path.Combine(targetDir, file.Name);
                 file.CopyTo(temppath, false);
             }
 
-            foreach (DirectoryInfo subdir in dirs)
+            foreach (var subdir in dirs)
             {
-                string temppath = Path.Combine(targetDir, subdir.Name);
+                var temppath = Path.Combine(targetDir, subdir.Name);
                 CopyDirectory(subdir.FullName, temppath);
             }
         }
@@ -37,8 +36,8 @@ namespace BackupToGit
         {
             if (Directory.Exists(folder))
             {
-                string[] files = Directory.GetFiles(folder, "*", SearchOption.AllDirectories);
-                foreach (string filename in files)
+                var files = Directory.GetFiles(folder, "*", SearchOption.AllDirectories);
+                foreach (var filename in files)
                 {
                     try
                     {
@@ -50,7 +49,7 @@ namespace BackupToGit
                     }
                 }
 
-                for (int tries = 1; tries <= 10; tries++)
+                for (var tries = 1; tries <= 10; tries++)
                 {
                     Log($"Deleting folder (try {tries}): '{folder}'");
                     try
@@ -83,9 +82,9 @@ namespace BackupToGit
             }
 
             Log($"Retrieving files: '{folder1}'");
-            string[] files1 = Directory.GetFiles(folder1, "*", SearchOption.AllDirectories);
+            var files1 = Directory.GetFiles(folder1, "*", SearchOption.AllDirectories);
             Log($"Retrieving files: '{folder2}'");
-            string[] files2 = Directory.GetFiles(folder2, "*", SearchOption.AllDirectories);
+            var files2 = Directory.GetFiles(folder2, "*", SearchOption.AllDirectories);
 
             if (files1.Length != files2.Length)
             {
@@ -96,16 +95,16 @@ namespace BackupToGit
             Array.Sort(files1);
             Array.Sort(files2);
 
-            bool diff = false;
+            var diff = false;
 
-            for (int i = 0; i < files1.Length; i++)
+            for (var i = 0; i < files1.Length; i++)
             {
-                string file1 = files1[i];
-                string file2 = files2[i];
+                var file1 = files1[i];
+                var file2 = files2[i];
 
                 Log($"Comparing: '{file1}' '{file2}'");
-                string f1 = file1.Substring(folder1.Length);
-                string f2 = file2.Substring(folder2.Length);
+                var f1 = file1.Substring(folder1.Length);
+                var f2 = file2.Substring(folder2.Length);
 
                 if (f1 != f2)
                 {
@@ -121,8 +120,8 @@ namespace BackupToGit
                     }
                 }
 
-                string hash1 = GetFileHash(file1);
-                string hash2 = GetFileHash(file2);
+                var hash1 = GetFileHash(file1);
+                var hash2 = GetFileHash(file2);
                 if (hash1 != hash2)
                 {
                     Log($"Hash diff: '{file1}' '{file2}' {hash1} {hash2}");
@@ -143,15 +142,15 @@ namespace BackupToGit
 
         public static string GetFileHash(string filename)
         {
-            using (FileStream fs = new FileStream(filename, FileMode.Open))
+            using (var fs = new FileStream(filename, FileMode.Open))
             {
-                using (BufferedStream bs = new BufferedStream(fs))
+                using (var bs = new BufferedStream(fs))
                 {
-                    using (SHA1 sha1 = SHA1.Create())
+                    using (var sha1 = SHA1.Create())
                     {
-                        byte[] hash = sha1.ComputeHash(bs);
-                        StringBuilder formatted = new StringBuilder(2 * hash.Length);
-                        foreach (byte b in hash)
+                        var hash = sha1.ComputeHash(bs);
+                        var formatted = new StringBuilder(2 * hash.Length);
+                        foreach (var b in hash)
                         {
                             formatted.AppendFormat("{0:X2}", b);
                         }

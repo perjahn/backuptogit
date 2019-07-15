@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -87,7 +85,7 @@ namespace BackupGrafana
 
                         string name = dashboard.meta.slug;
 
-                        string filename = Path.Combine(folder, PrettyName($"{org.name}_{name}") + ".json");
+                        var filename = Path.Combine(folder, PrettyName($"{org.name}_{name}") + ".json");
 
                         string pretty = dashboard.dashboard.ToString(Newtonsoft.Json.Formatting.Indented);
 
@@ -144,7 +142,7 @@ namespace BackupGrafana
         {
             var result = new StringBuilder();
 
-            foreach (char c in name.ToCharArray())
+            foreach (var c in name.ToCharArray())
             {
                 if (char.IsLetterOrDigit(c) || c == '-' || c == '_')
                 {

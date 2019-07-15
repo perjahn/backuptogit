@@ -148,7 +148,7 @@ namespace BackupArm
                 return 0;
             }
 
-            JArray details = (JArray)jobject["error"]["details"];
+            var details = (JArray)jobject["error"]["details"];
 
             return details.Count;
         }
@@ -178,7 +178,7 @@ namespace BackupArm
                 return jobject;
             }
 
-            JArray details = (JArray)jobject["error"]["details"];
+            var details = (JArray)jobject["error"]["details"];
 
             for (var i = 0; i < details.Count();)
             {
@@ -306,7 +306,7 @@ namespace BackupArm
         {
             var sb = new StringBuilder();
 
-            foreach (char c in s.ToCharArray())
+            foreach (var c in s.ToCharArray())
             {
                 if (char.IsLetterOrDigit(c) || c == ' ' || c == '-')
                 {

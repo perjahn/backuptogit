@@ -11,11 +11,11 @@ namespace BackupArm
     {
         static async Task<int> Main(string[] args)
         {
-            BackupToGit.Git git = new BackupToGit.Git();
+            var git = new BackupToGit.Git();
             BackupToGit.SecureLogger.Logfile = Path.Combine(Directory.GetCurrentDirectory(), "backuparm.log");
 
-            string[] parsedArgs = args.TakeWhile(a => a != "--").ToArray();
-            string usage = "Usage: backuparm <folder>";
+            var parsedArgs = args.TakeWhile(a => a != "--").ToArray();
+            var usage = "Usage: backuparm <folder>";
 
             if (parsedArgs.Length != 1)
             {
@@ -23,7 +23,7 @@ namespace BackupArm
                 return 1;
             }
 
-            string folder = parsedArgs[0];
+            var folder = parsedArgs[0];
 
             var servicePrincipals = GetServicePrincipals();
             if (servicePrincipals.Length == 0)
@@ -47,17 +47,17 @@ namespace BackupArm
             await Task.WhenAll(tasks);
 
 
-            string gitsourcefolder = folder;
-            string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
-            string gitserver = Environment.GetEnvironmentVariable("gitserver");
-            string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
-            string gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
-            string gitusername = Environment.GetEnvironmentVariable("gitusername");
-            string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
-            string gitemail = Environment.GetEnvironmentVariable("gitemail");
-            bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
-            string gitzipbinary = Environment.GetEnvironmentVariable("gitzipbinary");
-            string gitzippassword = Environment.GetEnvironmentVariable("gitzippassword");
+            var gitsourcefolder = folder;
+            var gitbinary = Environment.GetEnvironmentVariable("gitbinary");
+            var gitserver = Environment.GetEnvironmentVariable("gitserver");
+            var gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
+            var gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
+            var gitusername = Environment.GetEnvironmentVariable("gitusername");
+            var gitpassword = Environment.GetEnvironmentVariable("gitpassword");
+            var gitemail = Environment.GetEnvironmentVariable("gitemail");
+            var gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
+            var gitzipbinary = Environment.GetEnvironmentVariable("gitzipbinary");
+            var gitzippassword = Environment.GetEnvironmentVariable("gitzippassword");
 
             if (string.IsNullOrEmpty(gitbinary) && File.Exists("/usr/bin/git"))
             {
@@ -71,25 +71,51 @@ namespace BackupArm
             if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitreposubpath) ||
                 string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
             {
-                StringBuilder missing = new StringBuilder();
+                var missing = new StringBuilder();
                 if (string.IsNullOrEmpty(gitbinary))
+                {
                     missing.AppendLine("Missing gitbinary.");
+                }
+
                 if (string.IsNullOrEmpty(gitserver))
+                {
                     missing.AppendLine("Missing gitserver.");
+                }
+
                 if (string.IsNullOrEmpty(gitrepopath))
+                {
                     missing.AppendLine("Missing gitrepopath.");
+                }
+
                 if (string.IsNullOrEmpty(gitreposubpath))
+                {
                     missing.AppendLine("Missing gitreposubpath.");
+                }
+
                 if (string.IsNullOrEmpty(gitusername))
+                {
                     missing.AppendLine("Missing gitusername.");
+                }
+
                 if (string.IsNullOrEmpty(gitpassword))
+                {
                     missing.AppendLine("Missing gitpassword.");
+                }
+
                 if (string.IsNullOrEmpty(gitemail))
+                {
                     missing.AppendLine("Missing gitemail.");
+                }
+
                 if (string.IsNullOrEmpty(gitzipbinary))
+                {
                     missing.AppendLine("Missing gitzipbinary.");
+                }
+
                 if (string.IsNullOrEmpty(gitzippassword))
+                {
                     missing.AppendLine("Missing gitzippassword.");
+                }
 
                 Log("Missing git environment variables, will not push Arm template files to Git." + Environment.NewLine + missing.ToString());
             }
@@ -107,8 +133,8 @@ namespace BackupArm
                 git.ZipBinary = gitzipbinary;
                 git.ZipPassword = gitzippassword;
 
-                bool result = false;
-                for (int tries = 0; tries < 5 && !result; tries++)
+                var result = false;
+                for (var tries = 0; tries < 5 && !result; tries++)
                 {
                     result = git.Push();
                 }
@@ -142,12 +168,12 @@ namespace BackupArm
             var servicePrincipals = new List<ServicePrincipal>();
             foreach (var cred in creds)
             {
-                List<string> missingVariables = new List<string>();
+                var missingVariables = new List<string>();
 
-                string tenantId = cred.SingleOrDefault(c => c.Key.Contains("AzureTenantId")).Value;
-                string subscriptionId = cred.SingleOrDefault(c => c.Key.Contains("AzureSubscriptionId")).Value;
-                string clientId = cred.SingleOrDefault(c => c.Key.Contains("AzureClientId")).Value;
-                string clientSecret = cred.SingleOrDefault(c => c.Key.Contains("AzureClientSecret")).Value;
+                var tenantId = cred.SingleOrDefault(c => c.Key.Contains("AzureTenantId")).Value;
+                var subscriptionId = cred.SingleOrDefault(c => c.Key.Contains("AzureSubscriptionId")).Value;
+                var clientId = cred.SingleOrDefault(c => c.Key.Contains("AzureClientId")).Value;
+                var clientSecret = cred.SingleOrDefault(c => c.Key.Contains("AzureClientSecret")).Value;
                 if (tenantId == null)
                 {
                     missingVariables.Add("AzureTenantId");
@@ -187,14 +213,14 @@ namespace BackupArm
 
         static bool ParseBooleanEnvironmentVariable(string variableName, bool defaultValue)
         {
-            string stringValue = Environment.GetEnvironmentVariable(variableName);
+            var stringValue = Environment.GetEnvironmentVariable(variableName);
             if (stringValue == null)
             {
                 return defaultValue;
             }
             else
             {
-                if (!bool.TryParse(stringValue, out bool boolValue))
+                if (!bool.TryParse(stringValue, out var boolValue))
                 {
                     return defaultValue;
                 }

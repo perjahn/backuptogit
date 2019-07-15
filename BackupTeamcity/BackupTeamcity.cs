@@ -9,8 +9,8 @@ public class Program
 {
     public static int Main(string[] args)
     {
-        string[] parsedArgs = args.TakeWhile(a => a != "--").ToArray();
-        string usage =
+        var parsedArgs = args.TakeWhile(a => a != "--").ToArray();
+        var usage =
 @"BackupTeamcity 2.0.1
 
 This is a backup program that retrieves all important configuration files on
@@ -40,13 +40,13 @@ gitsimulatepush          - true/(false)
 
 Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepopath";
 
-        bool noninteractive = parsedArgs.Contains("--noninteractive") ? true : false;
+        var noninteractive = parsedArgs.Contains("--noninteractive") ? true : false;
         parsedArgs = parsedArgs.Where(a => a != "--noninteractive").ToArray();
 
-        bool verboseLogging = parsedArgs.Contains("--verbose") ? true : false;
+        var verboseLogging = parsedArgs.Contains("--verbose") ? true : false;
         parsedArgs = parsedArgs.Where(a => a != "--verbose").ToArray();
 
-        int result = 0;
+        var result = 0;
         try
         {
             if (parsedArgs.Length != 2)
@@ -79,13 +79,13 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
     static void BackupTeamcity(string sourcefolder, string targetfolder, bool verboseLogging)
     {
-        string curdir = Environment.CurrentDirectory;
+        var curdir = Environment.CurrentDirectory;
 
         Log($"Current Directory: '{curdir}'");
 
         if (!Directory.Exists(sourcefolder))
         {
-            string message = $"Couldn't find source folder: '{sourcefolder}'";
+            var message = $"Couldn't find source folder: '{sourcefolder}'";
             throw new ApplicationException(message);
         }
 
@@ -99,16 +99,16 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
         Directory.CreateDirectory(targetfolder);
 
 
-        string shortSourcefolder = sourcefolder;
+        var shortSourcefolder = sourcefolder;
         if (sourcefolder.StartsWith(curdir + Path.DirectorySeparatorChar))
         {
             shortSourcefolder = sourcefolder.Substring(curdir.Length + 1);
         }
 
 
-        bool includebuildnumberfiles = ParseBooleanEnvironmentVariable("includebuildnumberfiles", false);
+        var includebuildnumberfiles = ParseBooleanEnvironmentVariable("includebuildnumberfiles", false);
 
-        string shortTargetfolder = targetfolder;
+        var shortTargetfolder = targetfolder;
         if (targetfolder.StartsWith(curdir + Path.DirectorySeparatorChar))
         {
             shortTargetfolder = targetfolder.Substring(curdir.Length + 1);
@@ -116,15 +116,15 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
         CopyConfigFiles(shortSourcefolder, shortTargetfolder, includebuildnumberfiles);
 
-        string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
-        string gitserver = Environment.GetEnvironmentVariable("gitserver");
-        string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
-        string gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
-        string gitusername = Environment.GetEnvironmentVariable("gitusername");
-        string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
-        string gitemail = Environment.GetEnvironmentVariable("gitemail");
-        string gitzipbinary = Environment.GetEnvironmentVariable("gitzipbinary");
-        string gitzippassword = Environment.GetEnvironmentVariable("gitzippassword");
+        var gitbinary = Environment.GetEnvironmentVariable("gitbinary");
+        var gitserver = Environment.GetEnvironmentVariable("gitserver");
+        var gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
+        var gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
+        var gitusername = Environment.GetEnvironmentVariable("gitusername");
+        var gitpassword = Environment.GetEnvironmentVariable("gitpassword");
+        var gitemail = Environment.GetEnvironmentVariable("gitemail");
+        var gitzipbinary = Environment.GetEnvironmentVariable("gitzipbinary");
+        var gitzippassword = Environment.GetEnvironmentVariable("gitzippassword");
 
         if (string.IsNullOrEmpty(gitbinary) && File.Exists("/usr/bin/git"))
         {
@@ -135,26 +135,46 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
             gitbinary = @"C:\Program Files\Git\bin\git.exe";
         }
 
-        bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
+        var gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
 
         if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitreposubpath) ||
             string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
         {
-            StringBuilder missing = new StringBuilder();
+            var missing = new StringBuilder();
             if (string.IsNullOrEmpty(gitbinary))
+            {
                 missing.AppendLine("Missing gitbinary.");
+            }
+
             if (string.IsNullOrEmpty(gitserver))
+            {
                 missing.AppendLine("Missing gitserver.");
+            }
+
             if (string.IsNullOrEmpty(gitrepopath))
+            {
                 missing.AppendLine("Missing gitrepopath.");
+            }
+
             if (string.IsNullOrEmpty(gitreposubpath))
+            {
                 missing.AppendLine("Missing gitreposubpath.");
+            }
+
             if (string.IsNullOrEmpty(gitusername))
+            {
                 missing.AppendLine("Missing gitusername.");
+            }
+
             if (string.IsNullOrEmpty(gitpassword))
+            {
                 missing.AppendLine("Missing gitpassword.");
+            }
+
             if (string.IsNullOrEmpty(gitemail))
+            {
                 missing.AppendLine("Missing gitemail.");
+            }
 
             Log("Missing git environment variables, will not push Teamcity config files to Git." + Environment.NewLine + missing.ToString());
         }
@@ -176,8 +196,8 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
                 ZipPassword = gitzippassword
             };
 
-            bool result = false;
-            for (int tries = 0; tries < 5 && !result; tries++)
+            var result = false;
+            for (var tries = 0; tries < 5 && !result; tries++)
             {
                 result = git.Push();
             }
@@ -191,14 +211,14 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
     static bool ParseBooleanEnvironmentVariable(string variableName, bool defaultValue)
     {
-        string stringValue = Environment.GetEnvironmentVariable(variableName);
+        var stringValue = Environment.GetEnvironmentVariable(variableName);
         if (stringValue == null)
         {
             return defaultValue;
         }
         else
         {
-            if (!bool.TryParse(stringValue, out bool boolValue))
+            if (!bool.TryParse(stringValue, out var boolValue))
             {
                 return defaultValue;
             }
@@ -208,14 +228,14 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
     static void CopyConfigFiles(string sourcefolder, string targetfolder, bool includebuildnumberfiles)
     {
-        string[] files = Directory.GetFiles(sourcefolder, "*", SearchOption.AllDirectories)
+        var files = Directory.GetFiles(sourcefolder, "*", SearchOption.AllDirectories)
             .Select(f => f.StartsWith(@".\") ? f.Substring(2) : f)
             .ToArray();
 
         Log($"Found {files.Length} files.");
 
 
-        string[] ignorefiles = files
+        var ignorefiles = files
             .Where(f => Path.GetExtension(f).Length == 2 && char.IsDigit(Path.GetExtension(f)[1]))
             .ToArray();
         files = files
@@ -250,11 +270,11 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
         Log($"Backuping {files.Length} files to: '{targetfolder}'");
 
-        int count = 0;
+        var count = 0;
 
-        foreach (string sourcefile in files)
+        foreach (var sourcefile in files)
         {
-            string targetfile = Path.Combine(targetfolder, sourcefile.Substring(sourcefolder.Length + 1));
+            var targetfile = Path.Combine(targetfolder, sourcefile.Substring(sourcefolder.Length + 1));
 
             CopyFile(sourcefile, targetfile);
             count++;
@@ -265,7 +285,7 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
     static void CopyFile(string sourcefile, string targetfile)
     {
-        string folder = Path.GetDirectoryName(targetfile);
+        var folder = Path.GetDirectoryName(targetfile);
 
         if (!Directory.Exists(folder))
         {
@@ -276,13 +296,13 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
         Log($"Copying: '{sourcefile}' -> '{targetfile}'");
 
         // Also normalize lf to crlf, else later commit/push might fail.
-        string[] rows = File.ReadAllLines(sourcefile);
+        var rows = File.ReadAllLines(sourcefile);
         File.WriteAllLines(targetfile, rows);
     }
 
     static void LogColor(string message, ConsoleColor color)
     {
-        ConsoleColor oldColor = Console.ForegroundColor;
+        var oldColor = Console.ForegroundColor;
         try
         {
             Console.ForegroundColor = color;
@@ -296,17 +316,17 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
 
     static void Log(string message)
     {
-        string hostname = Dns.GetHostName();
-        string now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+        var hostname = Dns.GetHostName();
+        var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
         Console.WriteLine($"{hostname}: {now}: {message}");
     }
 
     static void LogTCSection(string message, IEnumerable<string> collection)
     {
-        string hostname = Dns.GetHostName();
-        string now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+        var hostname = Dns.GetHostName();
+        var now = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
-        ConsoleColor oldColor = Console.ForegroundColor;
+        var oldColor = Console.ForegroundColor;
         try
         {
             Console.ForegroundColor = ConsoleColor.Cyan;

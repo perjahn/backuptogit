@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace BackupToGit
 {
@@ -12,12 +11,12 @@ namespace BackupToGit
 
         public static void WriteLine(string message)
         {
-            string date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+            var date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
-            string clean = message;
+            var clean = message;
             if (SensitiveStrings != null)
             {
-                foreach (string replacestring in SensitiveStrings)
+                foreach (var replacestring in SensitiveStrings)
                 {
                     clean = clean.Replace(replacestring, new string('*', replacestring.Length));
                 }

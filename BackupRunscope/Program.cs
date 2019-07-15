@@ -10,11 +10,11 @@ namespace BackupRunscope
     {
         static async Task<int> Main(string[] args)
         {
-            BackupToGit.Git git = new BackupToGit.Git();
+            var git = new BackupToGit.Git();
             BackupToGit.SecureLogger.Logfile = Path.Combine(Directory.GetCurrentDirectory(), "BackupRunscope.log");
 
-            string[] parsedArgs = args.TakeWhile(a => a != "--").ToArray();
-            string usage = "Usage: BackupRunscope <access_token>";
+            var parsedArgs = args.TakeWhile(a => a != "--").ToArray();
+            var usage = "Usage: BackupRunscope <access_token>";
 
             if (parsedArgs.Length != 1)
             {
@@ -22,19 +22,19 @@ namespace BackupRunscope
                 return 1;
             }
 
-            string access_token = parsedArgs[0];
-            string folder = "buckets";
+            var access_token = parsedArgs[0];
+            var folder = "buckets";
             await Runscope.BackupAsync(access_token, folder);
 
-            string gitsourcefolder = folder;
-            string gitbinary = Environment.GetEnvironmentVariable("gitbinary");
-            string gitserver = Environment.GetEnvironmentVariable("gitserver");
-            string gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
-            string gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
-            string gitusername = Environment.GetEnvironmentVariable("gitusername");
-            string gitpassword = Environment.GetEnvironmentVariable("gitpassword");
-            string gitemail = Environment.GetEnvironmentVariable("gitemail");
-            bool gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
+            var gitsourcefolder = folder;
+            var gitbinary = Environment.GetEnvironmentVariable("gitbinary");
+            var gitserver = Environment.GetEnvironmentVariable("gitserver");
+            var gitrepopath = Environment.GetEnvironmentVariable("gitrepopath");
+            var gitreposubpath = Environment.GetEnvironmentVariable("gitreposubpath");
+            var gitusername = Environment.GetEnvironmentVariable("gitusername");
+            var gitpassword = Environment.GetEnvironmentVariable("gitpassword");
+            var gitemail = Environment.GetEnvironmentVariable("gitemail");
+            var gitsimulatepush = ParseBooleanEnvironmentVariable("gitsimulatepush", false);
 
             if (string.IsNullOrEmpty(gitbinary) && File.Exists("/usr/bin/git"))
             {
@@ -48,21 +48,41 @@ namespace BackupRunscope
             if (string.IsNullOrEmpty(gitbinary) || string.IsNullOrEmpty(gitserver) || string.IsNullOrEmpty(gitrepopath) || string.IsNullOrEmpty(gitreposubpath) ||
                 string.IsNullOrEmpty(gitusername) || string.IsNullOrEmpty(gitpassword) || string.IsNullOrEmpty(gitemail))
             {
-                StringBuilder missing = new StringBuilder();
+                var missing = new StringBuilder();
                 if (string.IsNullOrEmpty(gitbinary))
+                {
                     missing.AppendLine("Missing gitbinary.");
+                }
+
                 if (string.IsNullOrEmpty(gitserver))
+                {
                     missing.AppendLine("Missing gitserver.");
+                }
+
                 if (string.IsNullOrEmpty(gitrepopath))
+                {
                     missing.AppendLine("Missing gitrepopath.");
+                }
+
                 if (string.IsNullOrEmpty(gitreposubpath))
+                {
                     missing.AppendLine("Missing gitreposubpath.");
+                }
+
                 if (string.IsNullOrEmpty(gitusername))
+                {
                     missing.AppendLine("Missing gitusername.");
+                }
+
                 if (string.IsNullOrEmpty(gitpassword))
+                {
                     missing.AppendLine("Missing gitpassword.");
+                }
+
                 if (string.IsNullOrEmpty(gitemail))
+                {
                     missing.AppendLine("Missing gitemail.");
+                }
 
                 Log("Missing git environment variables, will not push Runscope bucket files to Git." + Environment.NewLine + missing.ToString());
             }
@@ -78,8 +98,8 @@ namespace BackupRunscope
                 git.Email = gitemail;
                 git.SimulatePush = gitsimulatepush;
 
-                bool result = false;
-                for (int tries = 0; tries < 5 && !result; tries++)
+                var result = false;
+                for (var tries = 0; tries < 5 && !result; tries++)
                 {
                     result = git.Push();
                 }
@@ -95,14 +115,14 @@ namespace BackupRunscope
 
         static bool ParseBooleanEnvironmentVariable(string variableName, bool defaultValue)
         {
-            string stringValue = Environment.GetEnvironmentVariable(variableName);
+            var stringValue = Environment.GetEnvironmentVariable(variableName);
             if (stringValue == null)
             {
                 return defaultValue;
             }
             else
             {
-                if (!bool.TryParse(stringValue, out bool boolValue))
+                if (!bool.TryParse(stringValue, out var boolValue))
                 {
                     return defaultValue;
                 }
