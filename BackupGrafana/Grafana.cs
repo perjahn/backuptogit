@@ -19,79 +19,73 @@ namespace BackupGrafana
             Log($"Creating directory: '{folder}'");
             Directory.CreateDirectory(folder);
 
-            using (var client = new HttpClient())
+            using var client = new HttpClient();
+            var creds = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
+
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            string json;
+
+            Log("Retrieving orgs.");
+            var url = $"{serverurl}/api/orgs";
+            try
             {
-                var creds = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", creds);
+                using var result = await HttpGet(client, url, 5);
+                json = await result.Content.ReadAsStringAsync();
+            }
+            catch (AggregateException ex)
+            {
+                Log($"Couldn't connect to Grafana server: '{url}' '{ex.Message}'");
+                return false;
+            }
 
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            var orgs = JArray.Parse(json);
+            Log($"Got {orgs.Count} organizations.");
 
-                string json;
-
-                Log("Retrieving orgs.");
-                var url = $"{serverurl}/api/orgs";
-                try
+            foreach (dynamic org in orgs)
+            {
+                Log($"Switching to org: {org.id} '{org.name}'");
+                url = $"{serverurl}/api/user/using/{org.id}";
+                using (var result = await HttpPost(client, url, null, 5))
                 {
-                    using (var result = await HttpGet(client, url, 5))
-                    {
-                        json = await result.Content.ReadAsStringAsync();
-                    }
+                    json = await result.Content.ReadAsStringAsync();
                 }
-                catch (AggregateException ex)
+
+                dynamic orgbody = JObject.Parse(json);
+                Log($"Message: {orgbody.message}");
+
+                // Some proxies (ARR) have broken buffering.
+                await Task.Delay(5000);
+
+
+                Log("Searching for dashboards.");
+                url = $"{serverurl}/api/search/";
+                using (var result = await HttpGet(client, url, 5))
                 {
-                    Log($"Couldn't connect to Grafana server: '{url}' '{ex.Message}'");
-                    return false;
+                    json = await result.Content.ReadAsStringAsync();
                 }
 
-                var orgs = JArray.Parse(json);
-                Log($"Got {orgs.Count} organizations.");
+                var array = JArray.Parse(json);
+                Log($"Got {array.Count} dashboards.");
 
-                foreach (dynamic org in orgs)
+                foreach (dynamic j in array)
                 {
-                    Log($"Switching to org: {org.id} '{org.name}'");
-                    url = $"{serverurl}/api/user/using/{org.id}";
-                    using (var result = await HttpPost(client, url, null, 5))
-                    {
-                        json = await result.Content.ReadAsStringAsync();
-                    }
+                    Log($"Retrieving dashboard: '{j.uri}'");
+                    url = $"{serverurl}/api/dashboards/{j.uri}";
+                    using var result = await HttpGet(client, url, 5);
+                    json = await result.Content.ReadAsStringAsync();
 
-                    dynamic orgbody = JObject.Parse(json);
-                    Log($"Message: {orgbody.message}");
+                    dynamic dashboard = JObject.Parse(json);
 
-                    // Some proxies (ARR) have broken buffering.
-                    await Task.Delay(5000);
+                    string name = dashboard.meta.slug;
 
+                    var filename = Path.Combine(folder, PrettyName($"{org.name}_{name}") + ".json");
 
-                    Log("Searching for dashboards.");
-                    url = $"{serverurl}/api/search/";
-                    using (var result = await HttpGet(client, url, 5))
-                    {
-                        json = await result.Content.ReadAsStringAsync();
-                    }
+                    string pretty = dashboard.dashboard.ToString(Newtonsoft.Json.Formatting.Indented);
 
-                    var array = JArray.Parse(json);
-                    Log($"Got {array.Count} dashboards.");
-
-                    foreach (dynamic j in array)
-                    {
-                        Log($"Retrieving dashboard: '{j.uri}'");
-                        url = $"{serverurl}/api/dashboards/{j.uri}";
-                        using (var result = await HttpGet(client, url, 5))
-                        {
-                            json = await result.Content.ReadAsStringAsync();
-                        }
-
-                        dynamic dashboard = JObject.Parse(json);
-
-                        string name = dashboard.meta.slug;
-
-                        var filename = Path.Combine(folder, PrettyName($"{org.name}_{name}") + ".json");
-
-                        string pretty = dashboard.dashboard.ToString(Newtonsoft.Json.Formatting.Indented);
-
-                        Log($"Saving: '{filename}'");
-                        File.WriteAllText(filename, pretty);
-                    }
+                    Log($"Saving: '{filename}'");
+                    File.WriteAllText(filename, pretty);
                 }
             }
 

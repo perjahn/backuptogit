@@ -19,33 +19,31 @@ namespace BackupArm
 
         public static async Task GetAzureAccessTokensAsync(ServicePrincipal[] servicePrincipals)
         {
-            using (var client = new HttpClient())
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var loginurl = "https://login.microsoftonline.com";
+            var managementurlForAuth = "https://management.core.windows.net/";
+
+            foreach (var servicePrincipal in servicePrincipals)
             {
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                var url = $"{loginurl}/{servicePrincipal.TenantId}/oauth2/token?api-version=1.0";
+                var data =
+                    $"grant_type=client_credentials&" +
+                    $"resource={WebUtility.UrlEncode(managementurlForAuth)}&" +
+                    $"client_id={WebUtility.UrlEncode(servicePrincipal.ClientId)}&" +
+                    $"client_secret={WebUtility.UrlEncode(servicePrincipal.ClientSecret)}";
 
-                var loginurl = "https://login.microsoftonline.com";
-                var managementurlForAuth = "https://management.core.windows.net/";
-
-                foreach (var servicePrincipal in servicePrincipals)
+                try
                 {
-                    var url = $"{loginurl}/{servicePrincipal.TenantId}/oauth2/token?api-version=1.0";
-                    var data =
-                        $"grant_type=client_credentials&" +
-                        $"resource={WebUtility.UrlEncode(managementurlForAuth)}&" +
-                        $"client_id={WebUtility.UrlEncode(servicePrincipal.ClientId)}&" +
-                        $"client_secret={WebUtility.UrlEncode(servicePrincipal.ClientSecret)}";
+                    dynamic result = await PostHttpStringAsync(client, url, data, "application/x-www-form-urlencoded");
 
-                    try
-                    {
-                        dynamic result = await PostHttpStringAsync(client, url, data, "application/x-www-form-urlencoded");
-
-                        servicePrincipal.AccessToken = result.access_token.Value;
-                    }
-                    catch (HttpRequestException ex)
-                    {
-                        Log($"Couldn't get access token for client {servicePrincipal.FriendlyName}: {ex.Message}");
-                        servicePrincipal.AccessToken = null;
-                    }
+                    servicePrincipal.AccessToken = result.access_token.Value;
+                }
+                catch (HttpRequestException ex)
+                {
+                    Log($"Couldn't get access token for client {servicePrincipal.FriendlyName}: {ex.Message}");
+                    servicePrincipal.AccessToken = null;
                 }
             }
 
@@ -54,35 +52,33 @@ namespace BackupArm
 
         public static async Task SaveArmTemplatesAsync(ServicePrincipal servicePrincipal, string folder)
         {
-            using (var client = new HttpClient())
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", servicePrincipal.AccessToken);
+            client.BaseAddress = new Uri("https://management.azure.com");
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+
+            var url = "/subscriptions?api-version=2016-06-01";
+
+            dynamic result = await GetHttpStringAsync(client, url);
+            JArray subscriptions = result.value;
+
+            Log($"{servicePrincipal.FriendlyName}: Found {subscriptions.Count} subscriptions.");
+
+            foreach (dynamic subscription in subscriptions)
             {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", servicePrincipal.AccessToken);
-                client.BaseAddress = new Uri("https://management.azure.com");
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                string subscriptionName = subscription.displayName;
+                subscriptionName = GetCleanName(subscriptionName);
 
+                url = $"{subscription.id}/resourcegroups?api-version=2018-02-01";
 
-                var url = "/subscriptions?api-version=2016-06-01";
+                result = await GetHttpStringAsync(client, url);
+                JArray resourceGroups = result.value;
 
-                dynamic result = await GetHttpStringAsync(client, url);
-                JArray subscriptions = result.value;
+                Log($"{subscriptionName}: Found {resourceGroups.Count} resource groups.");
 
-                Log($"{servicePrincipal.FriendlyName}: Found {subscriptions.Count} subscriptions.");
-
-                foreach (dynamic subscription in subscriptions)
-                {
-                    string subscriptionName = subscription.displayName;
-                    subscriptionName = GetCleanName(subscriptionName);
-
-                    url = $"{subscription.id}/resourcegroups?api-version=2018-02-01";
-
-                    result = await GetHttpStringAsync(client, url);
-                    JArray resourceGroups = result.value;
-
-                    Log($"{subscriptionName}: Found {resourceGroups.Count} resource groups.");
-
-                    var tasks = resourceGroups.Select(resourceGroup => ExportResourceGroupAsync(client, subscriptionName, (string)resourceGroup["id"], (string)resourceGroup["name"], folder));
-                    await Task.WhenAll(tasks);
-                }
+                var tasks = resourceGroups.Select(resourceGroup => ExportResourceGroupAsync(client, subscriptionName, (string)resourceGroup["id"], (string)resourceGroup["name"], folder));
+                await Task.WhenAll(tasks);
             }
 
             return;
@@ -225,32 +221,26 @@ namespace BackupArm
             else
             {
                 // Unknown stuff.
-                using (var sw = new StringWriter())
-                {
-                    using (var jw = new JsonTextWriter(sw))
-                    {
-                        jtoken.WriteTo(jw);
-                        return sw.ToString();
-                    }
-                }
+                using var sw = new StringWriter();
+                using var jw = new JsonTextWriter(sw);
+                jtoken.WriteTo(jw);
+                return sw.ToString();
             }
         }
 
         static async Task<JObject> GetHttpStringAsync(HttpClient client, string url)
         {
-            using (var response = await client.GetAsync(url))
-            {
-                response.EnsureSuccessStatusCode();
-                var result = await response.Content.ReadAsStringAsync();
+            using var response = await client.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadAsStringAsync();
 
-                if (result.Length > 0)
+            if (result.Length > 0)
+            {
+                if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
                 {
-                    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
-                    {
-                        File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
-                    }
-                    return JObject.Parse(result);
+                    File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
                 }
+                return JObject.Parse(result);
             }
 
             return null;
@@ -258,22 +248,18 @@ namespace BackupArm
 
         static async Task<JObject> PostHttpStringAsync(HttpClient client, string url, JToken jsoncontent)
         {
-            using (var stringContent = new StringContent(jsoncontent.ToString(), Encoding.UTF8, "application/json"))
-            {
-                using (var response = await client.PostAsync(url, stringContent))
-                {
-                    response.EnsureSuccessStatusCode();
-                    var result = await response.Content.ReadAsStringAsync();
+            using var stringContent = new StringContent(jsoncontent.ToString(), Encoding.UTF8, "application/json");
+            using var response = await client.PostAsync(url, stringContent);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadAsStringAsync();
 
-                    if (result.Length > 0)
-                    {
-                        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
-                        {
-                            File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
-                        }
-                        return JObject.Parse(result);
-                    }
+            if (result.Length > 0)
+            {
+                if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                {
+                    File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
                 }
+                return JObject.Parse(result);
             }
 
             return null;
@@ -281,22 +267,18 @@ namespace BackupArm
 
         static async Task<JObject> PostHttpStringAsync(HttpClient client, string url, string content, string contenttype)
         {
-            using (var stringContent = new StringContent(content, Encoding.UTF8, contenttype))
-            {
-                using (var response = await client.PostAsync(url, stringContent))
-                {
-                    response.EnsureSuccessStatusCode();
-                    var result = await response.Content.ReadAsStringAsync();
+            using var stringContent = new StringContent(content, Encoding.UTF8, contenttype);
+            using var response = await client.PostAsync(url, stringContent);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadAsStringAsync();
 
-                    if (result.Length > 0)
-                    {
-                        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
-                        {
-                            File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
-                        }
-                        return JObject.Parse(result);
-                    }
+            if (result.Length > 0)
+            {
+                if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ArmRestDebug")))
+                {
+                    File.WriteAllText($"result_{resultcount++}.json", JToken.Parse(result).ToString());
                 }
+                return JObject.Parse(result);
             }
 
             return null;

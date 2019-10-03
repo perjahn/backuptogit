@@ -142,22 +142,16 @@ namespace BackupToGit
 
         public static string GetFileHash(string filename)
         {
-            using (var fs = new FileStream(filename, FileMode.Open))
+            using var fs = new FileStream(filename, FileMode.Open);
+            using var bs = new BufferedStream(fs);
+            using var sha1 = SHA1.Create();
+            var hash = sha1.ComputeHash(bs);
+            var formatted = new StringBuilder(2 * hash.Length);
+            foreach (var b in hash)
             {
-                using (var bs = new BufferedStream(fs))
-                {
-                    using (var sha1 = SHA1.Create())
-                    {
-                        var hash = sha1.ComputeHash(bs);
-                        var formatted = new StringBuilder(2 * hash.Length);
-                        foreach (var b in hash)
-                        {
-                            formatted.AppendFormat("{0:X2}", b);
-                        }
-                        return formatted.ToString();
-                    }
-                }
+                formatted.AppendFormat("{0:X2}", b);
             }
+            return formatted.ToString();
         }
 
         private static void Log(string message)

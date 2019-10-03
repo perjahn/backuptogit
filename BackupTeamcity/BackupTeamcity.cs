@@ -11,7 +11,7 @@ public class Program
     {
         var parsedArgs = args.TakeWhile(a => a != "--").ToArray();
         var usage =
-@"BackupTeamcity 2.0.1
+@"BackupTeamcity 3.0.0
 
 This is a backup program that retrieves all important configuration files on
 a Teamcity build server. These files can be backuped and later imported on
