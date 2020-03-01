@@ -7,18 +7,18 @@ namespace BackupToGit
 {
     public class Git
     {
-        public string GitBinary { get; set; }
-        public string SourceFolder { get; set; }
-        public string Server { get; set; }
-        public string RepoPath { get; set; }
-        public string RepoSubPath { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; }
-        public string Email { get; set; }
-        public bool SimulatePush { get; set; }
+        public string GitBinary { get; set; } = string.Empty;
+        public string SourceFolder { get; set; } = string.Empty;
+        public string Server { get; set; } = string.Empty;
+        public string RepoPath { get; set; } = string.Empty;
+        public string RepoSubPath { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public bool SimulatePush { get; set; } = false;
 
-        public string ZipBinary { get; set; }
-        public string ZipPassword { get; set; }
+        public string ZipBinary { get; set; } = string.Empty;
+        public string ZipPassword { get; set; } = string.Empty;
 
         public bool VerboseLogging { get; set; } = false;
 

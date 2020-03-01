@@ -192,8 +192,8 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
                 Email = gitemail,
                 SimulatePush = gitsimulatepush,
                 VerboseLogging = verboseLogging,
-                ZipBinary = gitzipbinary,
-                ZipPassword = gitzippassword
+                ZipBinary = gitzipbinary ?? string.Empty,
+                ZipPassword = gitzippassword ?? string.Empty
             };
 
             var result = false;

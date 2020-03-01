@@ -25,25 +25,49 @@ namespace BackupArm
 
             var folder = parsedArgs[0];
 
-            var servicePrincipals = GetServicePrincipals();
-            if (servicePrincipals.Length == 0)
+            ServicePrincipal[] servicePrincipals;
+
+            string[] files = Directory.GetFiles(".", "*BearerToken*.txt")
+                .Select(f => f.StartsWith($".{Path.DirectorySeparatorChar}") || f.StartsWith($".{Path.AltDirectorySeparatorChar}") ? f.Substring(2) : f)
+                .ToArray();
+            if (files.Length >= 1)
             {
-                Log("Missing environment variables: AzureTenantId, AzureSubscriptionId, AzureClientId, AzureClientSecret");
-                return 1;
+                servicePrincipals = new ServicePrincipal[files.Length];
+                Log($"Found {files.Length} token files.");
+                for (int i = 0; i < files.Length; i++)
+                {
+                    var filename = files[i];
+                    string content = File.ReadAllText(filename);
+                    servicePrincipals[i] = new ServicePrincipal
+                    {
+                        AccessToken = content,
+                        FriendlyName = filename
+                    };
+                }
+            }
+            else
+            {
+                servicePrincipals = GetServicePrincipals();
+                if (servicePrincipals.Length == 0)
+                {
+                    Log("Missing environment variables: AzureTenantId, AzureSubscriptionId, AzureClientId, AzureClientSecret");
+                    return 1;
+                }
+
+                Log($"Got {servicePrincipals.Length} service principals: '{string.Join("', '", servicePrincipals.Select(sp => sp.FriendlyName))}'");
+
+                await Arm.GetAzureAccessTokensAsync(servicePrincipals);
+
+                servicePrincipals = servicePrincipals.Where(sp => string.IsNullOrEmpty(sp.AccessToken)).ToArray();
+                Log($"Got {servicePrincipals.Length} access tokens.");
+                if (servicePrincipals.Length == 0)
+                {
+                    return 1;
+                }
             }
 
-            Log($"Got {servicePrincipals.Length} service principals: '{string.Join("', '", servicePrincipals.Select(sp => sp.FriendlyName))}'");
 
-            await Arm.GetAzureAccessTokensAsync(servicePrincipals);
-
-            var accessTokens = servicePrincipals.Where(sp => sp.AccessToken != null).ToArray();
-            Log($"Got {accessTokens.Length} access tokens.");
-            if (accessTokens.Length == 0)
-            {
-                return 1;
-            }
-
-            var tasks = accessTokens.Select(accessToken => Arm.SaveArmTemplatesAsync(accessToken, folder));
+            var tasks = servicePrincipals.Select(servicePrincipal => Arm.SaveArmTemplatesAsync(servicePrincipal, folder));
             await Task.WhenAll(tasks);
 
 
@@ -130,8 +154,8 @@ namespace BackupArm
                 git.Password = gitpassword;
                 git.Email = gitemail;
                 git.SimulatePush = gitsimulatepush;
-                git.ZipBinary = gitzipbinary;
-                git.ZipPassword = gitzippassword;
+                git.ZipBinary = gitzipbinary ?? string.Empty;
+                git.ZipPassword = gitzippassword ?? string.Empty;
 
                 var result = false;
                 for (var tries = 0; tries < 5 && !result; tries++)
@@ -150,12 +174,12 @@ namespace BackupArm
 
         static ServicePrincipal[] GetServicePrincipals()
         {
-            string[] validVariables = { "AzureTenantId", "AzureSubscriptionId", "AzureClientId", "AzureClientSecret" };
+            string[] validVariables = { "AzureTenantId", "AzureClientId", "AzureClientSecret" };
 
             var creds =
                 Environment.GetEnvironmentVariables()
                 .Cast<System.Collections.DictionaryEntry>()
-                .ToDictionary(e => (string)e.Key, e => (string)e.Value)
+                .ToDictionary(e => (string)e.Key, e => (string)(e.Value ?? string.Empty))
                 .Where(e => validVariables.Any(v => e.Key.Contains(v)))
                 .GroupBy(e => new
                 {
@@ -171,16 +195,11 @@ namespace BackupArm
                 var missingVariables = new List<string>();
 
                 var tenantId = cred.SingleOrDefault(c => c.Key.Contains("AzureTenantId")).Value;
-                var subscriptionId = cred.SingleOrDefault(c => c.Key.Contains("AzureSubscriptionId")).Value;
                 var clientId = cred.SingleOrDefault(c => c.Key.Contains("AzureClientId")).Value;
                 var clientSecret = cred.SingleOrDefault(c => c.Key.Contains("AzureClientSecret")).Value;
                 if (tenantId == null)
                 {
                     missingVariables.Add("AzureTenantId");
-                }
-                if (subscriptionId == null)
-                {
-                    missingVariables.Add("AzureSubscriptionId");
                 }
                 if (clientId == null)
                 {
@@ -191,7 +210,7 @@ namespace BackupArm
                     missingVariables.Add("AzureClientSecret");
                 }
 
-                if (missingVariables.Count > 0)
+                if (tenantId == null || clientId == null || clientSecret == null || missingVariables.Count > 0)
                 {
                     Log($"Missing environment variables: Prefix: '{cred.Key.prefix}', Postfix: '{cred.Key.postfix}': '{string.Join("', '", missingVariables)}'");
                 }
@@ -201,7 +220,6 @@ namespace BackupArm
                     {
                         FriendlyName = string.Join('.', (new[] { cred.Key.prefix, cred.Key.postfix }).Where(p => !string.IsNullOrEmpty(p))),
                         TenantId = tenantId,
-                        SubscriptionId = subscriptionId,
                         ClientId = clientId,
                         ClientSecret = clientSecret
                     });

@@ -6,6 +6,7 @@
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

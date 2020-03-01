@@ -2,11 +2,10 @@
 {
     class ServicePrincipal
     {
-        public string FriendlyName { get; set; }
-        public string TenantId { get; set; }
-        public string SubscriptionId { get; set; }
-        public string ClientId { get; set; }
-        public string ClientSecret { get; set; }
-        public string AccessToken { get; set; }
+        public string FriendlyName { get; set; } = string.Empty;
+        public string TenantId { get; set; } = string.Empty;
+        public string ClientId { get; set; } = string.Empty;
+        public string ClientSecret { get; set; } = string.Empty;
+        public string AccessToken { get; set; } = string.Empty;
     }
 }

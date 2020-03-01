@@ -43,7 +43,7 @@ namespace BackupArm
                 catch (HttpRequestException ex)
                 {
                     Log($"Couldn't get access token for client {servicePrincipal.FriendlyName}: {ex.Message}");
-                    servicePrincipal.AccessToken = null;
+                    servicePrincipal.AccessToken = string.Empty;
                 }
             }
 
@@ -77,7 +77,8 @@ namespace BackupArm
 
                 Log($"{subscriptionName}: Found {resourceGroups.Count} resource groups.");
 
-                var tasks = resourceGroups.Select(resourceGroup => ExportResourceGroupAsync(client, subscriptionName, (string)resourceGroup["id"], (string)resourceGroup["name"], folder));
+                var tasks = resourceGroups.Select(resourceGroup => ExportResourceGroupAsync(client, subscriptionName,
+                   (string)((dynamic)resourceGroup).id, (string)((dynamic)resourceGroup).name, folder));
                 await Task.WhenAll(tasks);
             }
 
@@ -94,18 +95,24 @@ namespace BackupArm
 
             var results = new List<JObject>();
 
-            for (var tries = 0; tries < 12; tries++)
+            for (var tries = 1; tries <= 12; tries++)
             {
                 try
                 {
                     results.Add(await PostHttpStringAsync(client, url, jobject));
                 }
-                catch (Exception ex) when (ex is IOException || ex is TaskCanceledException || ex is SocketException)
+                catch (Exception ex) when (ex is IOException || ex is TaskCanceledException || ex is SocketException || ex is HttpRequestException)
                 {
                     Log($"Couldn't post to (try {tries}): {Environment.NewLine}'{url}'{Environment.NewLine}'{jobject.ToString()}'{Environment.NewLine}{ex.ToString()}");
                 }
 
                 await Task.Delay(5000);
+            }
+
+            if (results.Count == 0)
+            {
+                Log("No results found.");
+                return;
             }
 
             var minerrors = results.Min(o => GetErrorCount(o));
@@ -137,20 +144,26 @@ namespace BackupArm
             File.WriteAllText(filename, json);
         }
 
-        static int GetErrorCount(JObject jobject)
+        static int GetErrorCount(dynamic jobject)
         {
-            if (jobject["error"] == null || jobject["error"]["details"] == null)
+            if (jobject.error == null || jobject.error.details == null)
             {
                 return 0;
             }
 
-            var details = (JArray)jobject["error"]["details"];
+            var details = (JArray)jobject.error.details;
 
             return details.Count;
         }
 
         static JObject ScrubSecrets(JObject jobject, string name)
         {
+            var value = Environment.GetEnvironmentVariable("DontScrubSecrets");
+            if (!string.IsNullOrEmpty(value))
+            {
+                return jobject;
+            }
+
             var propertyNames = new[] { "keyData", "xmlCfg", "commandToExecute" };
 
             var properties = jobject
@@ -167,18 +180,18 @@ namespace BackupArm
             return jobject;
         }
 
-        static JObject DeleteSpuriousErrors(JObject jobject, string[] errorTypes, string name)
+        static JObject DeleteSpuriousErrors(dynamic jobject, string[] errorTypes, string name)
         {
-            if (jobject["error"] == null || jobject["error"]["details"] == null)
+            if (jobject.error == null || jobject.error.details == null)
             {
                 return jobject;
             }
 
-            var details = (JArray)jobject["error"]["details"];
+            var details = jobject.error.details;
 
-            for (var i = 0; i < details.Count();)
+            for (var i = 0; i < details.Count;)
             {
-                var target = (string)details[i]["target"];
+                var target = (string)details[i].target;
 
                 if (errorTypes.Contains(target))
                 {
@@ -243,7 +256,7 @@ namespace BackupArm
                 return JObject.Parse(result);
             }
 
-            return null;
+            throw new Exception("Got empty result.");
         }
 
         static async Task<JObject> PostHttpStringAsync(HttpClient client, string url, JToken jsoncontent)
@@ -262,7 +275,7 @@ namespace BackupArm
                 return JObject.Parse(result);
             }
 
-            return null;
+            throw new Exception("Got empty result.");
         }
 
         static async Task<JObject> PostHttpStringAsync(HttpClient client, string url, string content, string contenttype)
@@ -281,7 +294,7 @@ namespace BackupArm
                 return JObject.Parse(result);
             }
 
-            return null;
+            throw new Exception("Got empty result.");
         }
 
         static string GetCleanName(string s)

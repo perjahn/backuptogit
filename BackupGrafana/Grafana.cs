@@ -47,7 +47,8 @@ namespace BackupGrafana
             {
                 Log($"Switching to org: {org.id} '{org.name}'");
                 url = $"{serverurl}/api/user/using/{org.id}";
-                using (var result = await HttpPost(client, url, null, 5))
+                var stringContent = new StringContent(string.Empty);
+                using (var result = await HttpPost(client, url, stringContent, 5))
                 {
                     json = await result.Content.ReadAsStringAsync();
                 }
@@ -109,7 +110,8 @@ namespace BackupGrafana
                     await Task.Delay(5000);
                 }
             }
-            return null;  // Will not happen
+
+            throw new Exception("Got empty result.");
         }
 
         async Task<HttpResponseMessage> HttpPost(HttpClient client, string url, HttpContent content, int retries)
@@ -129,7 +131,8 @@ namespace BackupGrafana
                     await Task.Delay(5000);
                 }
             }
-            return null;  // Will not happen
+
+            throw new Exception("Got empty result.");
         }
 
         string PrettyName(string name)

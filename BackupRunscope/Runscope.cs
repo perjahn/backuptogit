@@ -133,7 +133,10 @@ namespace BackupRunscope
 
             foreach (var id in ids)
             {
-                id.Remove();
+                if (id != null)
+                {
+                    id.Remove();
+                }
             }
         }
 
