@@ -58,7 +58,7 @@ namespace BackupArm
 
                 await Arm.GetAzureAccessTokensAsync(servicePrincipals);
 
-                servicePrincipals = servicePrincipals.Where(sp => string.IsNullOrEmpty(sp.AccessToken)).ToArray();
+                servicePrincipals = servicePrincipals.Where(sp => !string.IsNullOrEmpty(sp.AccessToken)).ToArray();
                 Log($"Got {servicePrincipals.Length} access tokens.");
                 if (servicePrincipals.Length == 0)
                 {
