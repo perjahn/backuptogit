@@ -176,7 +176,7 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
                 missing.AppendLine("Missing gitemail.");
             }
 
-            Log("Missing git environment variables, will not push Teamcity config files to Git." + Environment.NewLine + missing.ToString());
+            Log($"Missing git environment variables, will not push Teamcity config files to Git.{Environment.NewLine}{missing}");
         }
         else
         {
@@ -337,7 +337,7 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
             Console.ForegroundColor = oldColor;
         }
 
-        Console.WriteLine($"{hostname}: {now}: " + string.Join(Environment.NewLine + $"{hostname}: {now}: ", collection));
+        Console.WriteLine($"{hostname}: {now}: " + string.Join($"{Environment.NewLine}{hostname}: {now}: ", collection));
 
         try
         {

@@ -34,7 +34,7 @@ namespace BackupGrafana
                 using var result = await HttpGet(client, url, 5);
                 json = await result.Content.ReadAsStringAsync();
             }
-            catch (AggregateException ex)
+            catch (Exception ex) when (ex is AggregateException || ex is InvalidOperationException)
             {
                 Log($"Couldn't connect to Grafana server: '{url}' '{ex.Message}'");
                 return false;
@@ -105,7 +105,7 @@ namespace BackupGrafana
                 }
                 catch (HttpRequestException ex) when (retry < retries)
                 {
-                    Log($"Error (try {retry}): '{url}' {ex.ToString()}");
+                    Log($"Error (try {retry}): '{url}' {ex}");
                     // Some proxies (ARR) have broken buffering.
                     await Task.Delay(5000);
                 }
@@ -126,7 +126,7 @@ namespace BackupGrafana
                 }
                 catch (HttpRequestException ex) when (retry < retries)
                 {
-                    Log($"Error, try {retry}: '{url}' {ex.ToString()}");
+                    Log($"Error, try {retry}: '{url}' {ex}");
                     // Some proxies (ARR) have broken buffering.
                     await Task.Delay(5000);
                 }

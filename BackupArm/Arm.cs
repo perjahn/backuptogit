@@ -103,7 +103,7 @@ namespace BackupArm
                 }
                 catch (Exception ex) when (ex is IOException || ex is TaskCanceledException || ex is SocketException || ex is HttpRequestException)
                 {
-                    Log($"Couldn't post to (try {tries}): {Environment.NewLine}'{url}'{Environment.NewLine}'{jobject.ToString()}'{Environment.NewLine}{ex.ToString()}");
+                    Log($"Couldn't post to (try {tries}): {Environment.NewLine}'{url}'{Environment.NewLine}'{jobject}'{Environment.NewLine}{ex}");
                 }
 
                 await Task.Delay(5000);
@@ -217,19 +217,19 @@ namespace BackupArm
                 var sortedChildren = jtoken.Children().Select(c => GetStableSortedJson(c, level + 1)).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
                 return sortedChildren.Count() == 0 ?
                     "{}" :
-                    "{" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "}";
+                    "{" + $"{Environment.NewLine}{indentChild}" + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + $"{Environment.NewLine}{indent}" + "}";
             }
             else if (jtoken.Type == JTokenType.Property)
             {
                 var old = (JProperty)jtoken;
-                return "\"" + old.Name + "\": " + GetStableSortedJson(old.Value, level);
+                return $"\"{old.Name}\": {GetStableSortedJson(old.Value, level)}";
             }
             else if (jtoken.Type == JTokenType.Array)
             {
                 var sortedChildren = jtoken.Select(c => GetStableSortedJson(c, level + 1)).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
                 return sortedChildren.Count() == 0 ?
                     "[]" :
-                    "[" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "]";
+                    "[" + $"{Environment.NewLine}{indentChild}" + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + $"{Environment.NewLine}{indent}]";
             }
             else
             {

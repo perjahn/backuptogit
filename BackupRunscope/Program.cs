@@ -84,7 +84,7 @@ namespace BackupRunscope
                     missing.AppendLine("Missing gitemail.");
                 }
 
-                Log("Missing git environment variables, will not push Runscope bucket files to Git." + Environment.NewLine + missing.ToString());
+                Log($"Missing git environment variables, will not push Runscope bucket files to Git.{Environment.NewLine}{missing}");
             }
             else
             {

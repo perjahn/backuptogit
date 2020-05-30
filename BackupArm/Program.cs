@@ -141,7 +141,7 @@ namespace BackupArm
                     missing.AppendLine("Missing gitzippassword.");
                 }
 
-                Log("Missing git environment variables, will not push Arm template files to Git." + Environment.NewLine + missing.ToString());
+                Log($"Missing git environment variables, will not push Arm template files to Git.{Environment.NewLine}{missing}");
             }
             else
             {

@@ -91,7 +91,7 @@ namespace BackupGrafana
                     missing.AppendLine("Missing gitemail.");
                 }
 
-                Log("Missing git environment variables, will not push Grafana dashboard files to Git." + Environment.NewLine + missing.ToString());
+                Log($"Missing git environment variables, will not push Grafana dashboard files to Git.{Environment.NewLine}{missing}");
             }
             else
             {

@@ -54,7 +54,7 @@ namespace BackupRunscope
 
                 string bucketContent;
 
-                Log($"Retrieving: '{baseUri.Uri.ToString()}'");
+                Log($"Retrieving: '{baseUri.Uri}'");
                 using (var response = await client.GetAsync(baseUri.Uri))
                 {
                     response.EnsureSuccessStatusCode();
@@ -150,7 +150,7 @@ namespace BackupRunscope
                 var sortedChildren = jtoken.Children().Select(c => GetStableSortedJson(c, level + 1)).OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
                 return sortedChildren.Count() == 0 ?
                     "{}" :
-                    "{" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "}";
+                    "{" + $"{Environment.NewLine}{indentChild}" + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + $"{Environment.NewLine}{indent}" + "}";
             }
             else if (jtoken.Type == JTokenType.Property)
             {
@@ -162,7 +162,7 @@ namespace BackupRunscope
                 var sortedChildren = jtoken.Select(c => GetStableSortedJson(c, level + 1));
                 return sortedChildren.Count() == 0 ?
                     "[]" :
-                    "[" + Environment.NewLine + indentChild + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + Environment.NewLine + indent + "]";
+                    $"[{Environment.NewLine}{indentChild}" + string.Join($",{Environment.NewLine}{indentChild}", sortedChildren) + $"{Environment.NewLine}{indent}]";
             }
             else
             {
