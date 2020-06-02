@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -57,6 +58,12 @@ namespace BackupRunscope
                 Log($"Retrieving: '{baseUri.Uri}'");
                 using (var response = await client.GetAsync(baseUri.Uri))
                 {
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        bucketcount++;
+                        Log("No tests found in bucket.");
+                        continue;
+                    }
                     response.EnsureSuccessStatusCode();
                     bucketContent = await response.Content.ReadAsStringAsync();
                 }
