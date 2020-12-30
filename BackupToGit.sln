@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 15.0.28307.572
-MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BackupArm", "BackupArm\BackupArm.csproj", "{D150444D-5E81-4311-B3DA-CF89F9B32CAB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BackupGrafana", "BackupGrafana\BackupGrafana.csproj", "{70CA7213-570A-42AC-A10B-474D5F16F172}"

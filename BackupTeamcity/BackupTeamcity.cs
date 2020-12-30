@@ -287,7 +287,7 @@ Repo will be cloned from url: https://gitusername:gitpassword@gitserver/gitrepop
     {
         var folder = Path.GetDirectoryName(targetfile);
 
-        if (!Directory.Exists(folder))
+        if (folder != null && !Directory.Exists(folder))
         {
             Log($"Creating target folder: '{folder}'");
             Directory.CreateDirectory(folder);

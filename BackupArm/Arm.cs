@@ -134,7 +134,7 @@ namespace BackupArm
             var json = GetStableSortedJson(jobject);
 
             var folderPath = Path.GetDirectoryName(filename);
-            if (!Directory.Exists(folderPath))
+            if (folderPath != null && !Directory.Exists(folderPath))
             {
                 Log($"Creating folder: '{folderPath}'");
                 Directory.CreateDirectory(folderPath);
